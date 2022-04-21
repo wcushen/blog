@@ -22,14 +22,14 @@ Mircoservices does what it says on the 'tin' - Their metric rise   are part of t
 
 The array of Service Mesh technologities in the field are design to help enginers and archiects improve the  security, obsevrality and traffic control of an organisation's microservices.
 
-On the heels of last year's Log4J and Log4Shell vulenabirlieis;irrspiective of industrt, a zero-trust access model should be accepted as standard practice
+On the heels of last year's Log4J and Log4Shell vulenabirlieis*; irrspiective of industrt, a zero-trust access model should be accepted as standard practice
 
 
 ### What is mTLS?
 
 Usually whenone visits a browser with HTTPS prefixed ot the URL ; the broswer will attempt to validate the server's certificate to make sure they're really who they say they are. 
 
-mTLS uphols this Zero Trust paradigm by extending typical service-side SSL by requiring the client to present its certiicates for validation as part of the TLS handshake. 
+mTLS uphols this Zero Trust paradigm by extending typical service-side SSL, also requiring the client to present its certiicates for validation as part of the TLS handshake. 
 
 ## About the example
 
@@ -37,22 +37,85 @@ For those that are fmailar with Sevrice Mesh mTLS capabiltities, in most cirucms
 
 Why an extenral Load Balcner when we can run a perfectly adeuqate in ingress gateway at the edge mesh?
 
-With an L7 extenral lad balcnace outisde the mesh we're attmepting to depict a comon orgnisational scenario with a GTM/LTM fronting various virtual and contaiinerized applications and offloading features such as DDoS defnce and traffic fitleing to a deicated appliance. Addiotnally, we may be tailoring our soltion for mutli-cluster and mutli-regional load balancing, the latter partiucalrly relevant in the cloud. 
+With an L7 extenral lad balcnace outisde the mesh we're attmepting to depict a comon orgnisational scenario with a GTM/LTM fronting various virtual and contaiinerized applications and offloading features such as DDoS defnce and traffic fitleing to a deicated appliance. Addiotnally, we may be tailoring our soltion for mutli-cluster and mutli-regional load balancing, the latter partiucalrly relevant to the cloud. 
 
-This example in this article represents are very srtipped down, rudimentay setup of an NGINX Revser Proxy fornting our httpbin workload running in an insatance of OpenShift Service Mesh 2.x; a birthchile of the Istio project. Nonetheless, the intention is to more highlight are increaisnlgy sought after seucirty feature in mTLS that although not unique to, for organisations adopting microservcies and service mesh tehcnologies alike. 
+This example in this article represents are very srtipped down, rudimentay setup of an NGINX Revser Proxy fornting our httpbin workload running in an insatance of OpenShift Service Mesh 2.x; a birthchile of the Istio project. Nonetheless, the intention is to more highlight a prominent seucirty feature in mTLS that is becoming increaisngly sought after, although not unique to, in microservcies and service mesh tehcnologies alike. 
+
+*Log4J isn't as aplciable as an SSL vulnerability as say Heartbleed but it certainly refocussed InfoSec teams to finger tight on security. 
 
 
-### Step 1: Installing Skupper CLI
+### Step 1: Installing Service Mesh 
 
-First things first, we will need to grab the latest version of the Skupper CLI from https://github.com/skupperproject/skupper-cli/releases. Let's add it to our path and make it executable.
+This post will focus less on spinning up OpenShift Service Mesh 2.x and more on the mTLS between client (the reverse proxy) and the server (our sample httpbin applicaiton). The latter will be accessed via its own INgress Gateway. 
+
+Whilst we'll defer the installation steps to the offiical guide, at the highest of levels, standing up Red Hat OpenShift Servce Mesh (RHOSSM) entails installing four Operators:
+
+- ElasticSearch Operator (by Red Hat)
+- Jaeger Operator (by Red Hat)
+- Kiali Operator (by Red Hat)
+- OpenShift Service Mesh Operator (by Red Hat)
+
+So go ahead and install as per the documneted process, inclduing deplying the "basic" `ServiceMeshControlPlane` Red Hat have provided in the `istio-system` namespace that you will create as a precursive step.
+
+https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp
+
+
+
+### Step 2: Create our application namespace and add it to the Mesh
+
+`ServiceMeshMemberRoll` is the resource we configure to permit namespaces entry to RHOSSM and under the jurisdiction of the `ServiceMeshContorlPlane`.
+
+First step is to create the namespace where our applciaiton will live
 
 ```
-$ curl https://skupper.io/install.sh | sh
-
-$ sudo mv .local/bin/skupper /usr/local/bin 
+$ oc new-project httpbin
 ```
 
-### Step 2: Create our namespaces
+Next, either via the console or CLI we will deploy the **default** `ServiceMeshMemberRoll` object in the RHOSSM control plane namespace of `istio-system`
+
+```
+apiVersion: maistra.io/v1
+kind: ServiceMeshMemberRoll
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  members:
+    - httpbin
+```
+
+We should see the status of the Member Roll as **CONFIGURED** 
+
+```
+$  oc get smmr -n istio-system default
+NAME      READY   STATUS       AGE
+default   1/1     Configured   10s
+```
+
+### Step 4: Deploy our applicaiton 
+
+This sample applcaiotn runs a single-replica httpbin as an Istio service. When deploying an application, you must opt-in to injection by configuring the annotation `sidecar.istio.io/inject=true` setting up the dpeloyment with an Envoy proxy that is the isiot compeont reposbile for inbound and outboud commecutoin to workload it is tied to. More informatoin can be found here on all the pieces of the puzzle that is Service Mesh and its architecture: https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html
+
+
+```
+$ oc project httpbin
+Already on project "httpbin" on server "https://api.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com:6443".
+
+$ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
+ 
+$ oc patch deployment httpbin --patch {\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject=true\"}}}}
+
+
+
+
+
+
+
+### Step 3: Generate server certificates and keys for our applcaition
+
+We'll first look to configuring our application inside the mesh, then we can 
+
+
 
 Log into your OCP clusters with `oc login`. We have created a `north` and a `south` namespace, which we will be dpeploying our two applications into. 
 

@@ -2,8 +2,8 @@
 layout:     post
 title:      "Service Mesh mTLS with NGINX Reverse Proxying"
 subtitle:   ""
-description: "Skupper Rocks"
-excerpt: "Skupper rocks again"
+description: "Service Mesh"
+excerpt: "Service Mesh"
 date:       2022-04-18
 author:         "Will Cushen"
 image: "/img/2018-04-11-service-mesh-vs-api-gateway/background.jpg"
@@ -13,7 +13,7 @@ tags:
     - Service Mesh
     - Kubernetes
 categories: [ Tech ]
-URL: "/2022-skupper"
+URL: "/2022-servicemesh"
 ---
 
 ## Serivice Mesh and Microservices
@@ -94,204 +94,227 @@ default   1/1     Configured   10s
 
 ### Step 4: Deploy our applicaiton 
 
-This sample applcaiotn runs a single-replica httpbin as an Istio service. When deploying an application, you must opt-in to injection by configuring the annotation `sidecar.istio.io/inject=true` setting up the dpeloyment with an Envoy proxy that is the isiot compeont reposbile for inbound and outboud commecutoin to workload it is tied to. More informatoin can be found here on all the pieces of the puzzle that is Service Mesh and its architecture: https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html
+This sample applcaiotn runs a single-replica httpbin as an Istio service taken from this documentation (https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to injection by configuring the annotation `sidecar.istio.io/inject=true` setting up the dpeloyment with an Envoy proxy that is the isiot compeont reposbile for inbound and outboud commecutoin to workload it is tied to. More informatoin can be found here on all the pieces of the puzzle that is Service Mesh and its architecture: https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html
 
 
 ```
 $ oc project httpbin
 Already on project "httpbin" on server "https://api.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com:6443".
 
+
 $ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
+
+$ oc patch namespace httpbin --patch {\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject=true\"}}}}
  
-$ oc patch deployment httpbin --patch {\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject=true\"}}}}
-
-
-
-
-
-
-
-### Step 3: Generate server certificates and keys for our applcaition
-
-We'll first look to configuring our application inside the mesh, then we can 
-
-
-
-Log into your OCP clusters with `oc login`. We have created a `north` and a `south` namespace, which we will be dpeploying our two applications into. 
-
-We can see the output of `skupper status` proves the absence of anything Skupper at this point.
-
-```
-$ oc project
-Using project "north" on server "https://api.cluster-one.example.com:6443".
-
-$ skupper status
-Skupper is enabled for namespace "north" in interior mode. It is connected to 1 other site. It has 1 exposed service.
-The site console url is:  https://skupper-north.apps.cluster-one.example.com
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
-``` 
-
-```
-$ oc project
-Using project "south" on server "https://api.cluster-two.example.com:6443".
-
-$ skupper status
-Skupper is enabled for namespace "south" in interior mode. It is connected to 1 other site. It has 1 exposed service.
-The site console url is:  https://skupper-south.apps.cluster-two.example.com
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
 ```
 
-### Step 3: Installing Skupper Router and Controller
-
-Next we will roll out the Skupper componentry being the Router and Controller in each namespace, responsible for creating our Virtual Application Network (VAN) and watching for service annotations (`internal.skupper.io/controlled: "true"`), respectively.  
-
-For redundancy, we can also up the replica count on the router via `--router` to specify two or greater.
+Or is we'd like to do this at a global level affecting all worklaods in the namespace then we can use oc label
 
 ```
-$ skupper init --site-name north
-Skupper is now installed in namespace 'north'.  Use 'skupper status' to get more information.
-
-$ oc get pod
-NAME                                          READY   STATUS    RESTARTS   AGE
-skupper-router-555dcb8f4d-5g24z               2/2     Running   0          6s
-skupper-service-controller-547d68b9ff-24bfq   1/1     Running   0          4s
+$ oc label namespace httpbin istio-injection=enabled --overwrite
 ```
 
-```
-$ skupper init --site-name south
-Skupper is now installed in namespace 'south'.  Use 'skupper status' to get more information.
+We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment. 
 
-$ oc get pod
-NAME                                          READY   STATUS    RESTARTS   AGE
-skupper-router-7f6d6dfb5f-ct7nd               2/2     Running   0          7s
-skupper-service-controller-85f76cfdb8-jlgh6   1/1     Running   0          5s
-```
-
-### Step 4: Connecting our namespaces
-
-Let's move onto generating a link token on the namespace that is serving as the **Listener** (`north`) in this instance.
+Grab the Kiali route:
 
 ```
-$ skupper token create $HOME/secret.yaml
-Token written to /home/lab-user/secret.yaml 
-```
-
-This renders a YAML file for the **Connecting** namespace on the `south` cluster to maintain as a `secret`.
-
-Once transferred over via `scp` or other means, we can then create that link to instantiate the linkage between the two clusters.
-
-```
-$ skupper link create $HOME/secret.yaml
-Site configured to link to https://claims-north.apps.cluster-one.example.com:443/dfd9ec0d-af2d-11ec-b421-0a126f52272a (name=link1)
-Check the status of the link using 'skupper link status'.
-```
-
-It's important to know that once setup, in a Skupper mesh of **more** than two clusters; traffic will be completely bi-directional meaning that if the originating namespace (where the token was created initially) goes down; the network between those remaining participating clusters continues to be active.  
-
-```
-$ skupper link status
-Link link1 is active
-```
-
-### Step 5: Deploy our two discrete applications
-
-Now with our multi-cluster Skupper network in place, it's time to spin up the front and back-end services that will comprise our microservice using the YAML defintions verbatim from the documentation link above. 
-
-NOTE: Going back to those 'tweaks' we said we would make; we need to:
-
-1. Allow the `default` Service Accounts in both namespaces to use the privileged port of **80** via `oc adm policy add-scc-to-user privileged -z default`
-
-[lab-user@bastion ~]$ oc logs frontend-65cd658457-76d7g
-2022/04/07 03:35:09 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
-nginx: [warn] the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
-2022/04/07 03:35:09 [emerg] 1#1: mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)
-nginx: [emerg] mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)
-
-2. Update the name of the backend deployment to `hello`, since this will be the internal DNS name by which the frontend sends requests to the backend worker Pods (set inside `nginx.conf`). Unfortunately we can't as of yet modify the Service name of a Deployment when we execute a `skupper expose`
-
-Let's create the backend first in the `south` namespace.
-
-```
-$ wget -O- -q https://k8s.io/examples/service/access/backend-deployment.yaml | sed  "s/name: backend/name: hello/g" | oc apply -f -
-deployment.apps/hello created
-```
-
-Next the frontend deployment in the `north` namespace.
-
-```
-$ oc apply -f https://k8s.io/examples/service/access/frontend-deployment.yaml
-deployment.apps/frontend created
-```
-
-Now create and expose the frontend service.
-
-At this point, we can now initiate the frontend service and expose as a typical OpenShift Router for external access. Alternatively, we could expose via `--type LoadBalancer` and acces via an `externalIP`.
-
-```
-$ oc expose deployment frontend --port 80 && oc expose service frontend
-```
-
-### Step 6: Observe that the application does not work
-
-Remembering that it won't yet have a connected backend, nor will the backend have a public ingress. 
-
-```
-$ curl $(oc get route frontend -o jsonpath='http://{.spec.host}') -I 
-curl: (7) Failed to connect to frontend-north.apps.cluster-one.example.com port 80: Connection timed out
-```
-
-Clearly, our frontend can't find the backend
-
-```
-$ oc get pod
-NAME                                          READY   STATUS    RESTARTS      AGE
-frontend-65cd658457-jbtvs                     0/1     Error     2 (15s ago)   19s
-skupper-router-c8c6b7bb4-86wrc                2/2     Running   0             2m42s
-skupper-service-controller-55769965bd-ncskj   1/1     Running   0             2m41s
-
-$ oc logs frontend-65cd658457-jbtvs
-2022/04/07 04:08:02 [emerg] 1#1: host not found in upstream "hello" in /etc/nginx/conf.d/frontend.conf:2
-nginx: [emerg] host not found in upstream "hello" in /etc/nginx/conf.d/frontend.conf:2
-```
-
-### Step 7: Expose the backend
-
-The `skupper expose deployment` command will invoke the creation of a standard K8s Service with the addition of the necesary selectors so that traffic is brokered through the Skupper router. 
-
-```
-$ skupper expose deployment/hello --port 80
-deployment hello exposed as hello
-```
-
-Observe the Service created.
-
-```
-$ oc describe service hello
+$ oc get route -n istio-system
+NAME                                       HOST/PORT                                                                            PATH   SERVICES               PORT         TERMINATION          WILDCARD
 ...
-Annotations:       internal.skupper.io/controlled: true
-Selector:          application=skupper-router,skupper.io/component=router
+kiali                                      kiali-istio-system.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com                         kiali                  <all>        reencrypt/Redirect   None
 ```
 
-Restart the frontend deployment
+Go to Workloads, and view our deployed applciation under the namespace `httpbin`
+
+If we observe a green tick under Health or no Missing Sidecar  warning in Details then we're all clear from a sidecar perspective.
+
+
+#### Step 5: Generate server certificates and keys for our applcaition
+
+At this point, our applciaiton should be active and reigstered as an application in the mesh. Next we'll use `openssl` to generate our certifcates and keys. In a demo context, we'll resort to creating our own CA and create a self-signed certifcate for our company Sample Corp. 
+
+Frist let's create of Root CA and Prvate Key
 
 ```
-$ oc rollout restart deployment/frontend
-deployment.apps/frontend restarted
+$ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
+$ CN=httpbin.$SUBDOMAIN
+
+$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Sample Corp./CN=sample.com' -keyout sample.com.key -out sample.com.crt
 ```
-
-### Step 8: Validate the frontend now responds
-
-Now we're at a point where we can expect something back from the frontend with the backend now exposed via Skupper.
-
-You should see the message generated by the backend:
+Next, let's generate a Cericate Signning Request which we will then sign.
 
 ```
-$ curl $(oc get route frontend -o jsonpath='http://{.spec.host}') 
-{"message":"Hello"}
+$ openssl req -out httpbin.sample.com.csr -newkey rsa:2048 -nodes -keyout httpbin.sample.com.key -subj "/CN=${CN}/O=IT Department"
+$ openssl x509 -req -days 365 -CA sample.com.crt -CAkey sample.com.key -set_serial 0 -in httpbin.sample.com.csr -out httpbin.sample.com.crt
 ```
 
-## Conclusion
+Finally, we'll store this in TLS secret to later refer to in our Gateway dpelyoment
 
-Skupper as you can see, has been architected so each application administrator is in control of the their own inter-cluster connectivity as opposed to a single `cluster-admin`. Some may argue the drawback as a result, is a decentalised mesh that could become problematic at scale when it comes to management and observability from a single point. Ultimately, it really depends in your environment who you intend to give the keys to. 
+```
+$ oc create secret tls httpbin-crendential --cert=path/to/tls.cert --key=path/to/tls.key -n istio-system 
+```
 
-Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the GitHub project. 
+### Step 6: Deploying the INgress Gateway
+
+Gateways in Isitio are applied to the standalone Envoy proxies at the edge of mesh. It's here where we'll assert our TLS configuration and the routing rules in a `VirtualService` which will be bound to the Gateway. 
+
+Again, we'll make use of the example in the Istio docuemnt - only with one iprotant distinction. Instead of the TLS mode of `SIMPLE`, we want to enforce `MUTUAL` 
+
+https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/#configure-a-tls-ingress-gateway-for-a-single-host
+
+we can go ahead and deploy our `Gateway` with the alteration  
+
+```
+$ cat <<EOF | oc apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: httpbin
+spec:
+  selector:
+    istio: ingressgateway # use istio default ingress gateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: MUTUAL
+      credentialName: httpbin-credential # must be the same as secret
+    hosts:
+    - httpbin.${SUBDOMAIN}
+EOF
+```
+
+In OpenShift Service Mesh, everytime we hit dpleoy on a `Gateway`, an OpenShift route is automatically created. Updates and deletes will also be reflected. We can however, disable this aumotaiotn altogether if want to. 
+
+We can verify the route's creation in the `istio-syste` namesapce
+
+
+```
+$ oc get route -n istio-system
+NAME                                       HOST/PORT                                                                            PATH   SERVICES               PORT         TERMINATION          WILDCARD
+...
+httpbin-httpbin-gateway-103ecd597519df74   httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com                                    istio-ingressgateway   https        passthrough          None
+```
+
+From here, we'll create our `VirtualService` which you can see specifies specific paths to route to the backend service. 
+
+```
+$ cat <<EOF | oc apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+  - "httpbin.${SUBDOMAIN}
+  gateways:
+  - httpbin
+  http:
+  - match:
+    - uri:
+        prefix: /status
+    - uri:
+        prefix: /delay
+    route:
+    - destination:
+        port:
+          number: 8000
+        host: httpbin
+EOF
+```
+
+Performing the curl to simulate as if we were just any old client (i.e. only in possession of the Root CA), we are met with a `certificate required` error which is to be expected.
+
+```
+$ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
+curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
+```
+
+Chanigng our TLS mode to `SIMPLE` on the Gateway would give us an approprate response as client certificat valition wouldn't be required. 
+
+```
+$ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
+HTTP/2 418 
+server: istio-envoy
+```
+
+### Step 7: Client the client's certificate and keys
+
+We essentially repeat the process to create the client’s key and certificate, and perform the self-signature with the CA created earlier.
+
+Recall the **client** in our example will be the NGINX Reverse Proxy that we will create in a later step. 
+
+```
+$ openssl req -out nginx.sample.com.csr -newkey rsa:2048 -nodes -keyout nginx.sample.com.key -subj "/CN=nginx.sample.com/O=client organization"
+$ openssl x509 -req -sha256 -days 365 -CA sample.com.crt -CAkey sample.com.key -set_serial 1 -in nginx.sample.com.csr -out nginx.sample.com.crt
+```
+
+We should be at a point now where we run the same curl with the addition of the nginx certicate and keys and get a valid response back from the server.
+
+```
+$ curl --key client.example.com.key --cert client.example.com.crt --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418
+
+    -=[ teapot ]=-
+
+       _...._
+     .'  _ _ `.
+    | ."` ^ `". _,
+    \_;`"---"`|//
+      |       ;/
+      \_     _/
+        `"""`
+```
+We'll tranpose this data over to our nginx config in an upcomhin step but we've got one more certiate/key pair to generate; the one our client. 
+
+
+### Step 7: Deploy our NGINX Reverse Proxy
+
+It's time now to deploy our reverse proxy tha acts an intermdieary server between our client and httpbin backend residing in the Service Mesh.
+
+I'll be running NGINXon my bastion server and depending on our disto, the installation medthod could vary. For RHEL 8, it's as simple as:
+
+```
+$ yum install nginx
+```
+
+```
+[lab-user@bastion ~]$ cat /etc/nginx/conf.d/proxy.conf
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name  app.example.com;
+
+    listen 443 ssl; # managed by Certbot
+
+    # RSA certificate
+    ssl_certificate /etc/ssl/certs/app.example.com.crt; # managed by Certbot
+    ssl_certificate_key /etc/ssl/certs/app.example.com.key; # managed by Certbot
+
+    # Redirect non-https traffic to https
+    if ($scheme != "https") {
+        return 301 https://$host$request_uri;
+    }
+        location /status/418 {
+            proxy_pass                    https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com;
+            proxy_ssl_certificate         /etc/nginx/client.example.com.crt;
+            proxy_ssl_certificate_key     /etc/nginx/client.example.com.key;
+            proxy_ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;
+            proxy_ssl_ciphers             HIGH:!aNULL:!MD5;
+            proxy_ssl_trusted_certificate /etc/ssl/certs/example.com.crt;
+
+            proxy_ssl_verify        on;
+       
+            proxy_ssl_server_name on;
+          
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+}
+```
+
+NOTE: For the urposes of this demo we've hijacked port 80 from the  default /tc/nginx/nginx.conf configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
+

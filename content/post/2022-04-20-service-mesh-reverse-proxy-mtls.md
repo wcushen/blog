@@ -39,6 +39,8 @@ Why an extenral Load Balcner when we can run a perfectly adeuqate in ingress gat
 
 With an L7 extenral lad balcnace outisde the mesh we're attmepting to depict a comon orgnisational scenario with a GTM/LTM fronting various virtual and contaiinerized applications and offloading features such as DDoS defnce and traffic fitleing to a deicated appliance. Addiotnally, we may be tailoring our soltion for mutli-cluster and mutli-regional load balancing, the latter partiucalrly relevant to the cloud. 
 
+Moreover, security benahmarks such as the Payment Card Industry - Data Security Standard (PCI - DSS) explicitly requires credit card information to be stored in internal networks segregated from your DMZ. 
+
 This example in this article represents are very srtipped down, rudimentay setup of an NGINX Revser Proxy fornting our httpbin workload running in an insatance of OpenShift Service Mesh 2.x; a birthchile of the Istio project. Nonetheless, the intention is to more highlight a prominent seucirty feature in mTLS that is becoming increaisngly sought after, although not unique to, in microservcies and service mesh tehcnologies alike. 
 
 *Log4J isn't as aplciable as an SSL vulnerability as say Heartbleed but it certainly refocussed InfoSec teams to finger tight on security. 
@@ -149,6 +151,14 @@ $ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"
 $ oc label namespace httpbin istio-injection=enabled --overwrite
 ```
 
+NOTE: To make this pod run in OpenShift, we need to  allow it use the SCC of `anyuid` which we'll bind to the `default` service account of the `httpbin` namespce
+
+```
+$ oc adm policy add-scc-to-user anyuid -z default && \
+oc patch deployment/httpbin --patch \
+   "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"last-restart\":\"`date +'%s'`\"}}}}}"
+```
+
 We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment. 
 
 Grab the Kiali route:
@@ -189,7 +199,7 @@ $ sudo openssl x509 -req -days 365 -CA /etc/ssl/certs/rootCACert.pem -CAkey /etc
 Finally, we'll store this in TLS secret to later refer to in our Gateway dpelyoment
 
 ```
-$ oc create secret tls httpbin-crendential --cert=path/to/tls.cert --key=path/to/tls.key -n istio-system 
+$ sudo oc create secret tls httpbin-crendential --cert=/etc/ssl/certs/httpbin.example.com.crt --key=/etc/ssl/certs/httpbin.example.com.key -n istio-system 
 ```
 
 ### Step 6: Deploying the INgress Gateway
@@ -227,7 +237,7 @@ EOF
 
 In OpenShift Service Mesh, everytime we hit dpleoy on a `Gateway`, an OpenShift route is automatically created. Updates and deletes will also be reflected. We can however, disable this aumotaiotn altogether if want to. 
 
-We can verify the route's creation in the `istio-syste` namesapce
+We can verify the route's creation in the `istio-system` namesapce
 
 
 ```
@@ -245,9 +255,10 @@ apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   name: httpbin
+  namespace: httpbin
 spec:
   hosts:
-  - "httpbin.${SUBDOMAIN}
+  - "httpbin.${SUBDOMAIN}"
   gateways:
   - httpbin
   http:
@@ -263,6 +274,15 @@ spec:
         host: httpbin
 EOF
 ```
+
+And validate its deployment
+
+```
+$ oc get virtualservice -n httpbin
+NAME      GATEWAYS      HOSTS                                                          AGE
+httpbin   ["httpbin"]   ["httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.com"]   20s
+```
+
 
 Performing the curl to simulate as if we were just any old client (i.e. only in possession of the Root CA), we are met with a `certificate required` error which is to be expected.
 
@@ -361,7 +381,7 @@ NOTE: For the urposes of this demo we've hijacked port 80 from the  default /tc/
 
 We've included the `reverseproxy.crt` and `reverseproxy.key` as both the client **AND** server certificate.key pair in this instance. This certificate is presented, when asked, to connections attempting to contact this virtual proxy server in addiotn to represneting the ssl certificate that will be present to the backend server; identified by `proxy_pass` which is our exposed httpbin application from the mesh.  
 
-`ssl_client_certifcates` switch that enables/disables the reverse proxy's server's certificate authentication behavior. Here we've set it to `optional`. In an internla corporate environment may this mTLS between the browser and the reverse proxy in most circumstances would be deemed overkill.  most cetinaly covering all bases and 
+`ssl_client_certifcates` switch that enables/disables the reverse proxy's server's certificate authentication behavior. Here we've set it to `optional`. This is easier to manage in an intenral corpoate environment where you could have more or more endorsed root Certifcates, concaentaed into a single file. Outside this though, the overhead of managing an accepted list of CAs of publicy-accesible browsers would be burdensome, to put it lightly. 
 
 ### Step 8: Test the OpenShift Service Mesh with mTLS enabled
 

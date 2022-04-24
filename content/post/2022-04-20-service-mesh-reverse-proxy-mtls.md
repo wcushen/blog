@@ -55,17 +55,47 @@ Whilst we'll defer the installation steps to the offiical guide, at the highest 
 - Kiali Operator (by Red Hat)
 - OpenShift Service Mesh Operator (by Red Hat)
 
-So go ahead and install as per the documneted process, inclduing deplying the "basic" `ServiceMeshControlPlane` Red Hat have provided in the `istio-system` namespace that you will create as a precursive step.
+### Step 2: Bringing up the Servie Mesh control plane
+
+So go ahead and install the control plane as per the documneted process, inclduing deplying the "basic" `ServiceMeshControlPlane` Red Hat have provided in the `istio-system` namespace that you will create as a precursive step.
+
+Let's create the namespace where our Istio control plane will live. 
+
+```
+$ oc new-project istio-system
+```
 
 https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp
 
+```
+$ cat <<EOF | oc apply -f -
+apiVersion: maistra.io/v2
+kind: ServiceMeshControlPlane
+metadata:
+  name: basic
+  namespace: istio-system
+spec:
+  version: v2.0
+  tracing:
+    type: Jaeger
+    sampling: 10000
+  addons:
+    jaeger:
+      name: jaeger
+      install:
+        storage:
+          type: Memory
+    kiali:
+      enabled: true
+      name: kiali
+    grafana:
+      enabled: true
+EOF
+```
 
+### Step 3: Create our application namespace
 
-### Step 2: Create our application namespace and add it to the Mesh
-
-`ServiceMeshMemberRoll` is the resource we configure to permit namespaces entry to RHOSSM and under the jurisdiction of the `ServiceMeshContorlPlane`.
-
-First step is to create the namespace where our applciaiton will live
+We'll move onto crating the namespace where our applciaiton will reside.
 
 ```
 $ oc new-project httpbin
@@ -73,7 +103,10 @@ $ oc new-project httpbin
 
 Next, either via the console or CLI we will deploy the **default** `ServiceMeshMemberRoll` object in the RHOSSM control plane namespace of `istio-system`
 
+`ServiceMeshMemberRoll` is the resource we configure to permit namespaces entry to RHOSSM and under the jurisdiction of the `ServiceMeshContorlPlane`.
+
 ```
+$ cat <<EOF | oc apply -f -
 apiVersion: maistra.io/v1
 kind: ServiceMeshMemberRoll
 metadata:
@@ -82,6 +115,7 @@ metadata:
 spec:
   members:
     - httpbin
+EOF    
 ```
 
 We should see the status of the Member Roll as **CONFIGURED** 
@@ -100,15 +134,16 @@ This sample applcaiotn runs a single-replica httpbin as an Istio service taken f
 ```
 $ oc project httpbin
 Already on project "httpbin" on server "https://api.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com:6443".
-
-
+```
+```
 $ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
-
-$ oc patch namespace httpbin --patch {\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject=true\"}}}}
- 
 ```
 
-Or is we'd like to do this at a global level affecting all worklaods in the namespace then we can use oc label
+```
+$ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject\":\"true\"}}}}}"
+```
+
+**Or** if we'd like to do this at a global level affecting all worklaods in the namespace then we can do this via `oc label`
 
 ```
 $ oc label namespace httpbin istio-injection=enabled --overwrite
@@ -136,17 +171,19 @@ At this point, our applciaiton should be active and reigstered as an application
 
 Frist let's create of Root CA and Prvate Key
 
-```
-$ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
-$ CN=httpbin.$SUBDOMAIN
 
-$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Sample Corp./CN=sample.com' -keyout sample.com.key -out sample.com.crt
 ```
+$ sudo openssl genrsa -out /etc/ssl/certs/rootCAKey.pem 2048
+$ sudo openssl req -x509 -sha256 -new -nodes -subj '/O=Example Corp./CN=example.com' -key /etc/ssl/certs/rootCAKey.pem -days 3650 -out /etc/ssl/certs/rootCACert.pem
+```
+
 Next, let's generate a Cericate Signning Request which we will then sign.
 
 ```
-$ openssl req -out httpbin.sample.com.csr -newkey rsa:2048 -nodes -keyout httpbin.sample.com.key -subj "/CN=${CN}/O=IT Department"
-$ openssl x509 -req -days 365 -CA sample.com.crt -CAkey sample.com.key -set_serial 0 -in httpbin.sample.com.csr -out httpbin.sample.com.crt
+$ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
+$ CN=httpbin.$SUBDOMAIN
+$ sudo openssl req -out /etc/ssl/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout /etc/ssl/certs/httpbin.example.com.key -subj "/CN=${CN}/O=IT Department"
+$ sudo openssl x509 -req -days 365 -CA /etc/ssl/certs/rootCACert.pem -CAkey /etc/ssl/certs/rootCAKey.pem -set_serial 0 -in /etc/ssl/certs/httpbin.example.com.csr -out /etc/ssl/certs/httpbin.example.com.crt
 ```
 
 Finally, we'll store this in TLS secret to later refer to in our Gateway dpelyoment
@@ -171,6 +208,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: httpbin
+  namespace: httpbin
 spec:
   selector:
     istio: ingressgateway # use istio default ingress gateway
@@ -255,7 +293,7 @@ $ openssl x509 -req -sha256 -days 365 -CA sample.com.crt -CAkey sample.com.key -
 We should be at a point now where we run the same curl with the addition of the nginx certicate and keys and get a valid response back from the server.
 
 ```
-$ curl --key client.example.com.key --cert client.example.com.crt --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418
+$ curl --key  /etc/nginx/ssl/reverseproxy.key --cert  /etc/nginx/ssl/reverseproxy.crt --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418
 
     -=[ teapot ]=-
 
@@ -267,14 +305,14 @@ $ curl --key client.example.com.key --cert client.example.com.crt --cacert examp
       \_     _/
         `"""`
 ```
-We'll tranpose this data over to our nginx config in an upcomhin step but we've got one more certiate/key pair to generate; the one our client. 
-
+We're now good to tranpose this data over to our nginx config in an upcomhin step.
+ 
 
 ### Step 7: Deploy our NGINX Reverse Proxy
 
 It's time now to deploy our reverse proxy tha acts an intermdieary server between our client and httpbin backend residing in the Service Mesh.
 
-I'll be running NGINXon my bastion server and depending on our disto, the installation medthod could vary. For RHEL 8, it's as simple as:
+I'll be running NGINXon my bastion server and depending on your running operating system, the installation medthod could vary. For RHEL 8, it's as simple as:
 
 ```
 $ yum install nginx
@@ -287,11 +325,14 @@ server {
     listen [::]:80 default_server;
     server_name  app.example.com;
 
-    listen 443 ssl; # managed by Certbot
+    listen 443 ssl; 
 
     # RSA certificate
-    ssl_certificate /etc/ssl/certs/app.example.com.crt; # managed by Certbot
-    ssl_certificate_key /etc/ssl/certs/app.example.com.key; # managed by Certbot
+    ssl_certificate /etc/ssl/certs/app.example.com.crt;
+    ssl_certificate_key /etc/ssl/certs/app.example.com.key;
+
+    ssl_client_certificate /etc/nginx/ssl/rootCA.pem;
+    ssl_verify_client	  optional;
 
     # Redirect non-https traffic to https
     if ($scheme != "https") {
@@ -317,4 +358,12 @@ server {
 ```
 
 NOTE: For the urposes of this demo we've hijacked port 80 from the  default /tc/nginx/nginx.conf configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
+
+We've included the `reverseproxy.crt` and `reverseproxy.key` as both the client **AND** server certificate.key pair in this instance. This certificate is presented, when asked, to connections attempting to contact this virtual proxy server in addiotn to represneting the ssl certificate that will be present to the backend server; identified by `proxy_pass` which is our exposed httpbin application from the mesh.  
+
+`ssl_client_certifcates` switch that enables/disables the reverse proxy's server's certificate authentication behavior. Here we've set it to `optional`. In an internla corporate environment may this mTLS between the browser and the reverse proxy in most circumstances would be deemed overkill.  most cetinaly covering all bases and 
+
+### Step 8: Test the OpenShift Service Mesh with mTLS enabled
+
+
 

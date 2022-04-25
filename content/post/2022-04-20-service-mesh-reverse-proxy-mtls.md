@@ -59,17 +59,15 @@ Whilst we'll defer the installation steps to the offiical guide, at the highest 
 
 ### Step 2: Bringing up the Servie Mesh control plane
 
-So go ahead and install the control plane as per the documneted process, inclduing deplying the "basic" `ServiceMeshControlPlane` Red Hat have provided in the `istio-system` namespace that you will create as a precursive step.
+So go ahead and install the control plane as per the [documented steps](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp), inclduing deplying the "basic" `ServiceMeshControlPlane` Red Hat have provided in the `istio-system` namespace that you will create as a precursive step.
 
 Let's create the namespace where our Istio control plane will live. 
 
-```
+```yaml
 $ oc new-project istio-system
 ```
 
-https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp
-
-```
+```yaml
 $ cat <<EOF | oc apply -f -
 apiVersion: maistra.io/v2
 kind: ServiceMeshControlPlane
@@ -99,7 +97,7 @@ EOF
 
 We'll move onto crating the namespace where our applciaiton will reside.
 
-```
+```yaml
 $ oc new-project httpbin
 ```
 
@@ -107,7 +105,7 @@ Next, either via the console or CLI we will deploy the **default** `ServiceMeshM
 
 `ServiceMeshMemberRoll` is the resource we configure to permit namespaces entry to RHOSSM and under the jurisdiction of the `ServiceMeshContorlPlane`.
 
-```
+```yaml
 $ cat <<EOF | oc apply -f -
 apiVersion: maistra.io/v1
 kind: ServiceMeshMemberRoll
@@ -122,7 +120,7 @@ EOF
 
 We should see the status of the Member Roll as **CONFIGURED** 
 
-```
+```yaml
 $  oc get smmr -n istio-system default
 NAME      READY   STATUS       AGE
 default   1/1     Configured   10s
@@ -133,47 +131,50 @@ default   1/1     Configured   10s
 This sample applcaiotn runs a single-replica httpbin as an Istio service taken from this documentation (https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to injection by configuring the annotation `sidecar.istio.io/inject=true` setting up the dpeloyment with an Envoy proxy that is the isiot compeont reposbile for inbound and outboud commecutoin to workload it is tied to. More informatoin can be found here on all the pieces of the puzzle that is Service Mesh and its architecture: https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html
 
 
-```
+```yaml
 $ oc project httpbin
-Already on project "httpbin" on server "https://api.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com:6443".
 ```
-```
+```yaml
 $ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
 ```
 
-```
+```yaml
 $ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject\":\"true\"}}}}}"
 ```
 
 **Or** if we'd like to do this at a global level affecting all worklaods in the namespace then we can do this via `oc label`
 
-```
+```yaml
 $ oc label namespace httpbin istio-injection=enabled --overwrite
 ```
 
-NOTE: To make this pod run in OpenShift, we need to  allow it use the SCC of `anyuid` which we'll bind to the `default` service account of the `httpbin` namespce
+.. WARNING::
+To make this pod run in OpenShift, we need to  allow it use the SCC of `anyuid` which we'll bind to the `default` service account of the `httpbin` namespce
 
-```
-$ oc adm policy add-scc-to-user anyuid -z default && \
+```yaml
+$ oc adm policy add-scc-to-user anyuid -z httpbin && \
 oc patch deployment/httpbin --patch \
    "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"last-restart\":\"`date +'%s'`\"}}}}}"
 ```
 
-We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment. 
+
+> We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment. 
+
 
 Grab the Kiali route:
 
-```
+```yaml
 $ oc get route -n istio-system
 NAME                                       HOST/PORT                                                                            PATH   SERVICES               PORT         TERMINATION          WILDCARD
 ...
 kiali                                      kiali-istio-system.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com                         kiali                  <all>        reencrypt/Redirect   None
 ```
 
-Go to Workloads, and view our deployed applciation under the namespace `httpbin`
+Go to **Workloads***, and view our deployed applciation under the namespace `httpbin`
 
-If we observe a green tick under Health or no Missing Sidecar  warning in Details then we're all clear from a sidecar perspective.
+If we observe a green tick under Health or no <img< src="/img/2022-04-mtls-service-mesh-nginx/missing-sidecar.png" <style="float: right; padding: 0 0 0 10px"<> warning in Details then we're all clear from a sidecar perspective.
 
+![](/img/2022-04-mtls-service-mesh-nginx/httpbin-kiali-health.png)
 
 #### Step 5: Generate server certificates and keys for our applcaition
 
@@ -182,37 +183,37 @@ At this point, our applciaiton should be active and reigstered as an application
 Frist let's create of Root CA and Prvate Key
 
 
-```
-$ sudo openssl genrsa -out /etc/ssl/certs/rootCAKey.pem 2048
-$ sudo openssl req -x509 -sha256 -new -nodes -subj '/O=Example Corp./CN=example.com' -key /etc/ssl/certs/rootCAKey.pem -days 3650 -out /etc/ssl/certs/rootCACert.pem
+```yaml
+$ mkdir certs
+$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example Corp./CN=example.com' -keyout rootCAKey.pem -out rootCACert.pem
 ```
 
 Next, let's generate a Cericate Signning Request which we will then sign.
 
-```
+```yaml
 $ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
 $ CN=httpbin.$SUBDOMAIN
-$ sudo openssl req -out /etc/ssl/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout /etc/ssl/certs/httpbin.example.com.key -subj "/CN=${CN}/O=IT Department"
-$ sudo openssl x509 -req -days 365 -CA /etc/ssl/certs/rootCACert.pem -CAkey /etc/ssl/certs/rootCAKey.pem -set_serial 0 -in /etc/ssl/certs/httpbin.example.com.csr -out /etc/ssl/certs/httpbin.example.com.crt
+$ openssl req -out certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout certs/httpbin.example.com.key -subj "/CN=${CN}/O=httpbin organization"
+$ openssl x509 -req -sha256 -days 365 -CA certs/rootCACert.pem -CAkey certs/rootCAKey.pem -set_serial 0 -in certs/httpbin.example.com.csr -out certs/httpbin.example.com.crt
 ```
 
 Finally, we'll store this in TLS secret to later refer to in our Gateway dpelyoment
 
-```
-$ sudo oc create secret tls httpbin-crendential --cert=/etc/ssl/certs/httpbin.example.com.crt --key=/etc/ssl/certs/httpbin.example.com.key -n istio-system 
+```yaml
+$ oc create secret tls httpbin-credential --cert=certs/httpbin.example.com.crt --key=certs/httpbin.example.com.key -n istio-system 
 ```
 
 ### Step 6: Deploying the INgress Gateway
 
 Gateways in Isitio are applied to the standalone Envoy proxies at the edge of mesh. It's here where we'll assert our TLS configuration and the routing rules in a `VirtualService` which will be bound to the Gateway. 
 
-Again, we'll make use of the example in the Istio docuemnt - only with one iprotant distinction. Instead of the TLS mode of `SIMPLE`, we want to enforce `MUTUAL` 
+Again, we'll make use of the example in the Istio docuemnt - only with one iprotant distinction. Instead of the TLS mode set to `SIMPLE`, we want to enforce `MUTUAL`. 
 
 https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/#configure-a-tls-ingress-gateway-for-a-single-host
 
 we can go ahead and deploy our `Gateway` with the alteration  
 
-```
+```yaml
 $ cat <<EOF | oc apply -f -
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
@@ -240,7 +241,7 @@ In OpenShift Service Mesh, everytime we hit dpleoy on a `Gateway`, an OpenShift 
 We can verify the route's creation in the `istio-system` namesapce
 
 
-```
+```yaml
 $ oc get route -n istio-system
 NAME                                       HOST/PORT                                                                            PATH   SERVICES               PORT         TERMINATION          WILDCARD
 ...
@@ -249,7 +250,7 @@ httpbin-httpbin-gateway-103ecd597519df74   httpbin.apps.cluster-j7cwg.j7cwg.sand
 
 From here, we'll create our `VirtualService` which you can see specifies specific paths to route to the backend service. 
 
-```
+```yaml
 $ cat <<EOF | oc apply -f -
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -277,7 +278,7 @@ EOF
 
 And validate its deployment
 
-```
+```yaml
 $ oc get virtualservice -n httpbin
 NAME      GATEWAYS      HOSTS                                                          AGE
 httpbin   ["httpbin"]   ["httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.com"]   20s
@@ -286,14 +287,14 @@ httpbin   ["httpbin"]   ["httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.c
 
 Performing the curl to simulate as if we were just any old client (i.e. only in possession of the Root CA), we are met with a `certificate required` error which is to be expected.
 
-```
+```yaml
 $ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
 curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
 ```
 
 Chanigng our TLS mode to `SIMPLE` on the Gateway would give us an approprate response as client certificat valition wouldn't be required. 
 
-```
+```yaml
 $ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
 HTTP/2 418 
 server: istio-envoy
@@ -305,14 +306,14 @@ We essentially repeat the process to create the client’s key and certificate, 
 
 Recall the **client** in our example will be the NGINX Reverse Proxy that we will create in a later step. 
 
-```
+```yaml
 $ openssl req -out nginx.sample.com.csr -newkey rsa:2048 -nodes -keyout nginx.sample.com.key -subj "/CN=nginx.sample.com/O=client organization"
 $ openssl x509 -req -sha256 -days 365 -CA sample.com.crt -CAkey sample.com.key -set_serial 1 -in nginx.sample.com.csr -out nginx.sample.com.crt
 ```
 
 We should be at a point now where we run the same curl with the addition of the nginx certicate and keys and get a valid response back from the server.
 
-```
+```yaml
 $ curl --key  /etc/nginx/ssl/reverseproxy.key --cert  /etc/nginx/ssl/reverseproxy.crt --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418
 
     -=[ teapot ]=-
@@ -334,11 +335,11 @@ It's time now to deploy our reverse proxy tha acts an intermdieary server betwee
 
 I'll be running NGINXon my bastion server and depending on your running operating system, the installation medthod could vary. For RHEL 8, it's as simple as:
 
-```
+```yaml
 $ yum install nginx
 ```
 
-```
+```yaml
 [lab-user@bastion ~]$ cat /etc/nginx/conf.d/proxy.conf
 server {
     listen 80 default_server;

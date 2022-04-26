@@ -130,15 +130,13 @@ default   1/1     Configured   10s
 
 This sample applcaiotn runs a single-replica httpbin as an Istio service taken from this documentation (https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to injection by configuring the annotation `sidecar.istio.io/inject=true` setting up the dpeloyment with an Envoy proxy that is the isiot compeont reposbile for inbound and outboud commecutoin to workload it is tied to. More informatoin can be found here on all the pieces of the puzzle that is Service Mesh and its architecture: https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html
 
+{{% notice warning %}}
+To make this pod run in OpenShift, we need to  allow it use the SCC of `anyuid` which we'll bind to the `default` service account of the `httpbin` namespce
+{{% /notice %}}
 
 ```yaml
 $ oc project httpbin
-```
-```yaml
 $ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
-```
-
-```yaml
 $ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject\":\"true\"}}}}}"
 ```
 
@@ -148,18 +146,15 @@ $ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"
 $ oc label namespace httpbin istio-injection=enabled --overwrite
 ```
 
-.. WARNING::
-To make this pod run in OpenShift, we need to  allow it use the SCC of `anyuid` which we'll bind to the `default` service account of the `httpbin` namespce
-
 ```yaml
 $ oc adm policy add-scc-to-user anyuid -z httpbin && \
 oc patch deployment/httpbin --patch \
    "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"last-restart\":\"`date +'%s'`\"}}}}}"
 ```
-
-
-> We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment. 
-
+ 
+{{% notice tip %}}
+We can head over to the Kiali dashboard to vlaidate that the sidecar is present in our httpbin deplyoment.
+{{% /notice %}} 
 
 Grab the Kiali route:
 

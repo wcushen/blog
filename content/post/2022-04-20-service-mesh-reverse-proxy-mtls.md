@@ -167,7 +167,11 @@ kiali                                      kiali-istio-system.apps.cluster-j7cwg
 
 Go to **Workloads***, and view our deployed applciation under the namespace `httpbin`
 
-If we observe a green tick under Health or no <img< src="/img/2022-04-mtls-service-mesh-nginx/missing-sidecar.png" <style="float: right; padding: 0 0 0 10px"<> warning in Details then we're all clear from a sidecar perspective.
+{{< rawhtml >}}
+<p>
+If we observe a green tick under Health or no <img style='display:inline;' src='/img/2022-04-mtls-service-mesh-nginx/missing-sidecar.png'/>warning in Details then we're all clear from a sidecar perspective.
+</p>
+{{< /rawhtml >}}
 
 ![](/img/2022-04-mtls-service-mesh-nginx/httpbin-kiali-health.png)
 

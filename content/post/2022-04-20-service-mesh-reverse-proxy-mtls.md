@@ -177,14 +177,14 @@ If we observe a green tick under Health or no <img style='display:inline;' src='
 
 #### Step 5: Generate server certificates and keys for our applcaition
 
-At this point, our applciaiton should be active and reigstered as an application in the mesh. Next we'll use `openssl` to generate our certifcates and keys. In a demo context, we'll resort to creating our own CA and create a self-signed certifcate for our company Sample Corp. 
+At this point, our applciaiton should be active and reigstered as an application in the mesh. Next we'll use `openssl` to generate our certifcates and keys. In a demo context, we'll resort to creating our own CA and create a self-signed certifcate for our company Example Corp. 
 
 Frist let's create of Root CA and Prvate Key
 
 
 ```yaml
-$ mkdir certs
-$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example Corp./CN=example.com' -keyout rootCAKey.pem -out rootCACert.pem
+$ mkdir /var/tmp/{certs,prviate}
+$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example Corp./CN=example.com' -keyout /var/tmp/private/rootCAKey.pem -out /var/tmp/certs/rootCACert.pem
 ```
 
 Next, let's generate a Cericate Signning Request which we will then sign.
@@ -192,14 +192,14 @@ Next, let's generate a Cericate Signning Request which we will then sign.
 ```yaml
 $ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
 $ CN=httpbin.$SUBDOMAIN
-$ openssl req -out certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout certs/httpbin.example.com.key -subj "/CN=${CN}/O=httpbin organization"
-$ openssl x509 -req -sha256 -days 365 -CA certs/rootCACert.pem -CAkey certs/rootCAKey.pem -set_serial 0 -in certs/httpbin.example.com.csr -out certs/httpbin.example.com.crt
+$ openssl req -out /var/tmp/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/httpbin.example.com.key -subj "/CN=${CN}/O=httpbin organization"
+$ openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem -set_serial 0 -in /var/tmp/certs/httpbin.example.com.csr -out /var/tmp/certs/httpbin.example.com.crt
 ```
 
 Finally, we'll store this in TLS secret to later refer to in our Gateway dpelyoment
 
 ```yaml
-$ oc create secret tls httpbin-credential --cert=certs/httpbin.example.com.crt --key=certs/httpbin.example.com.key -n istio-system 
+$ oc create secret generic httpbin-credential --from-file=tls.crt=/var/tmp/certs/httpbin.example.com.crt --from-file=tls.key=/var/tmp/private/httpbin.example.com.key --from-file=ca.crt=/var/tmp/certs/rootCACert.pem -n istio-system
 ```
 
 ### Step 6: Deploying the INgress Gateway
@@ -287,16 +287,25 @@ httpbin   ["httpbin"]   ["httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.c
 Performing the curl to simulate as if we were just any old client (i.e. only in possession of the Root CA), we are met with a `certificate required` error which is to be expected.
 
 ```yaml
-$ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
+$ curl  --cacert /var/tmp/certs/rootCACert.pem https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
 curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
 ```
 
 Chanigng our TLS mode to `SIMPLE` on the Gateway would give us an approprate response as client certificat valition wouldn't be required. 
 
 ```yaml
-$ curl  --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418 -I
-HTTP/2 418 
-server: istio-envoy
+$ curl --cacert /var/tmp/certs/rootCACert.pem https://httpbin.${SUBDOMAIN}/status/418
+
+    -=[ teapot ]=-
+
+       _...._
+     .'  _ _ `.
+    | ."` ^ `". _,
+    \_;`"---"`|//
+      |       ;/
+      \_     _/
+        `"""`
+
 ```
 
 ### Step 7: Client the client's certificate and keys
@@ -306,14 +315,14 @@ We essentially repeat the process to create the client’s key and certificate, 
 Recall the **client** in our example will be the NGINX Reverse Proxy that we will create in a later step. 
 
 ```yaml
-$ openssl req -out nginx.sample.com.csr -newkey rsa:2048 -nodes -keyout nginx.sample.com.key -subj "/CN=nginx.sample.com/O=client organization"
-$ openssl x509 -req -sha256 -days 365 -CA sample.com.crt -CAkey sample.com.key -set_serial 1 -in nginx.sample.com.csr -out nginx.sample.com.crt
+$ openssl req -out /var/tmp/certs/nginx.example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/nginx.example.com.key -subj "/CN=nginx.example.com/O=Reverse Proxy"
+$ openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem  -set_serial 1 -in /var/tmp/certs/nginx.example.com.csr -out /var/tmp/certs/nginx.example.com.crt
 ```
 
 We should be at a point now where we run the same curl with the addition of the nginx certicate and keys and get a valid response back from the server.
 
 ```yaml
-$ curl --key  /etc/nginx/ssl/reverseproxy.key --cert  /etc/nginx/ssl/reverseproxy.crt --cacert example.com.crt https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com/status/418
+$ [lab-user@bastion ~]$ curl --key /var/tmp/private/nginx.example.com.key --cert /var/tmp/certs/nginx.example.com.crt --cacert /var/tmp/certs/rootCACert.pem https://httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.com/status/418
 
     -=[ teapot ]=-
 
@@ -325,7 +334,7 @@ $ curl --key  /etc/nginx/ssl/reverseproxy.key --cert  /etc/nginx/ssl/reverseprox
       \_     _/
         `"""`
 ```
-We're now good to tranpose this data over to our nginx config in an upcomhin step.
+We're now good to tranpose these certificates and keys over to our nginx config in an upcomhin step.
  
 
 ### Step 7: Deploy our NGINX Reverse Proxy
@@ -335,7 +344,7 @@ It's time now to deploy our reverse proxy tha acts an intermdieary server betwee
 I'll be running NGINXon my bastion server and depending on your running operating system, the installation medthod could vary. For RHEL 8, it's as simple as:
 
 ```yaml
-$ yum install nginx
+$ sudo yum install nginx -y
 ```
 
 ```yaml
@@ -348,10 +357,10 @@ server {
     listen 443 ssl; 
 
     # RSA certificate
-    ssl_certificate /etc/ssl/certs/app.example.com.crt;
-    ssl_certificate_key /etc/ssl/certs/app.example.com.key;
+    ssl_certificate /var/tmp/certs/nginx.example.com.crt;
+    ssl_certificate_key /var/tmp/private/nginx.example.com.key;
 
-    ssl_client_certificate /etc/nginx/ssl/rootCA.pem;
+    ssl_client_certificate /var/tmp/certs/rootCACert.pem;
     ssl_verify_client	  optional;
 
     # Redirect non-https traffic to https
@@ -359,12 +368,12 @@ server {
         return 301 https://$host$request_uri;
     }
         location /status/418 {
-            proxy_pass                    https://httpbin.apps.cluster-j7cwg.j7cwg.sandbox1228.opentlc.com;
-            proxy_ssl_certificate         /etc/nginx/client.example.com.crt;
-            proxy_ssl_certificate_key     /etc/nginx/client.example.com.key;
+            proxy_pass                    https://httpbin.${SUBDOMAIN};
+            proxy_ssl_certificate         /var/tmp/certs/nginx.example.com.crt;
+            proxy_ssl_certificate_key     /var/tmp/private/nginx.example.com.key;
             proxy_ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;
             proxy_ssl_ciphers             HIGH:!aNULL:!MD5;
-            proxy_ssl_trusted_certificate /etc/ssl/certs/example.com.crt;
+            proxy_ssl_trusted_certificate /var/tmp/certs/rootCACert.pem;
 
             proxy_ssl_verify        on;
        
@@ -377,7 +386,7 @@ server {
 }
 ```
 
-NOTE: For the urposes of this demo we've hijacked port 80 from the  default /tc/nginx/nginx.conf configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
+NOTE: For the purposes of this demo we've hijacked port 80 from the  default /tc/nginx/nginx.conf configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
 
 We've included the `reverseproxy.crt` and `reverseproxy.key` as both the client **AND** server certificate.key pair in this instance. This certificate is presented, when asked, to connections attempting to contact this virtual proxy server in addiotn to represneting the ssl certificate that will be present to the backend server; identified by `proxy_pass` which is our exposed httpbin application from the mesh.  
 

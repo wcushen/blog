@@ -1,12 +1,12 @@
 ---
 layout:     post
-title:      "Deep Dive with Skupper"
+title:      "Deep Dive on Skupper"
 subtitle:   ""
-description: "Skupper Rocks"
+description: "Bridging multicloud workloads across Kubernetes clusters with the new interconnect on the block"
 excerpt: "Skupper rocks again"
 date:       2022-04-04
 author:         "Will Cushen"
-image: "/img/2022-04-skupper-deep-dive/chairlift.jpg"
+image: "/img/2022-04-skupper-deep-dive/dames-point-bridge.jpg"
 published: true
 tags:
     - Microservice
@@ -32,7 +32,7 @@ In this post, we'll highlight the _flagship_ use case of encrypting workload com
 
 ## About the deployment
 
-We will create a front and back-end microservice, deploying each in a separate cluster to show the 'magic' of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some OpenShift and Skupper nuances, which we'll outline below. 
+We will create a front and back-end microservice, deploying each in a separate cluster to show the real value prop of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some 'Skupper on OpenShift' nuances, which we'll outline below. 
 
 ### Step 1: Installing the Skupper CLI
 

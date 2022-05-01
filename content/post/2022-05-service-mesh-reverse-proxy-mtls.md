@@ -2,7 +2,7 @@
 layout:     post
 title:      "Securing Microservices with mTLS"
 subtitle:   ""
-description: "Service Mesh"
+description: "Heightening 'encryption in transit' through mutual TLS between external services and Istio"
 excerpt: "Service Mesh"
 date:       2022-04-18
 author:         "Will Cushen"
@@ -14,7 +14,7 @@ tags:
     - Kubernetes
     - Istio
 #categories: [ Tech ]
-URL: "/2022-servicemesh"
+URL: "/2022-05-service-mesh-reverse-proxy-mtls"
 ---
 
 ## Service Mesh and Microservices
@@ -35,7 +35,7 @@ mTLS upholds this zero-trust paradigm, extending typical service-side SSL by _al
 
 ## About the example
 
-For those that are familiar with Service Mesh mTLS capabilities, I bet in most circumstances your exposure has been in the form of mTLS between microservices running **inside** the mesh. In this post we'll look at example of an external server communicating with an application running inside an OpenShift Service Mesh 2.2 enabled namespace. This external server will act as a reverse proxy to facilitate the ingress routing to our mesh. 
+For those that are familiar with Service Mesh mTLS capabilities, I bet in most circumstances your exposure has been in the form of mTLS between microservices running **inside** the mesh. In this post we'll look at example of an external server communicating with an application running inside an OpenShift Service Mesh 2.x enabled namespace. This external server will act as a reverse proxy to facilitate the ingress routing to our mesh. 
 
 _Why stand up an external Load Balancer when we can run a perfectly adequate ingress gateway at the mesh edge?_
 
@@ -44,14 +44,14 @@ With an L7 external load balancer outside the mesh we're attempting to depict a 
 Moreover, security benchmarks such as the **Payment Card Industry - Data Security Standard** (PCI - DSS), declare inbound traffic is a strict _no-no_ for Internet to Cardholder Data Environment (CDE)communication. Bringing in an intermediate server or reverse proxy in the DMZ serves as one approach to address this compliance requirement.
 
 {{% notice info %}}
-PCI-DSS 1.3.1: _Implement a DMZ to limit inbound traffic to only system components that provide authorized publicly accessible services, protocols, and ports._
+**PCI-DSS 1.3.1:** _Implement a DMZ to limit inbound traffic to only system components that provide authorized publicly accessible services, protocols, and ports._
 {{% /notice %}}
 
 The example in this article represents are very stripped down, rudimentary setup of an NGINX Reverse Proxy fronting an **httpbin** workload running in an instance of OpenShift Service Mesh 2.x; a birthchild of the Istio project. The intention is to highlight a prominent security feature in mTLS that is becoming increasingly sought after, although not unique to, in microservices and service mesh technologies alike. 
 
 ![Service Mesh ingress via NGINX with mTLS](/img/2022-05-service-mesh-reverse-proxy-mtls/istio-diagram.png)
 
-*Although Log4J isn't a straight up SSL vulnerability as say Heartbleed some years ago, it certainly compelled SecOps teams to _really_ consider the security posture of their software stack.  
+*Although Log4J isn't a straight up SSL vulnerability as say Heartbleed some years ago, it certainly compelled SecOps teams to take stock and _really_ consider the security posture of their software stack.  
 
 ### Step 1: Installing Service Mesh 
 
@@ -310,7 +310,7 @@ $ curl --cacert /var/tmp/certs/rootCACert.pem https://httpbin.${SUBDOMAIN}/statu
         `"""`
 ```
 
-### Step 7: Creating the client's certificate and keys
+### Step 7: Creating the client's keys and certificates
 
 We essentially repeat the process to create the client’s key and certificate, and perform the self-signature with the CA created earlier.
 
@@ -464,6 +464,6 @@ $ curl --cacert /var/tmp/certs/rootCACert.pem  https://httpbin.frontend.example.
 
 This was just a fun dabble demonstrating mTLS communication from outside Istio. Certainly there's benefit in drawing from _some_ of the security architecture in here that could be implemented in a scale-out enterprise environment - it's a balance of _risks_ and _needs_; and **where** and **how** we terminate SSL is certainly one of those considerations. 
 
-It should be noted that as of OpenShift 4.9, mTLS authentication can be enabled in the Ingress Controller, so there are other, arguably simpler ways if we want _just_ want to cherry-pick certain security features that were only previously on Istio's bumper sticker ( at least in the OpenShift space :smile:).
+It should be noted that as of OpenShift 4.9, mTLS authentication can be enabled in the Ingress Controller, so there are other, arguably simpler ways if we want _just_ want to cherry-pick certain security features that were only previously on Istio's bumper sticker (at least in the OpenShift space :smile:).
 
-I hope you got some value from the above walkthrough and most importantly, hopefully forwards any discussion you might be having in your team on how you treat your Kubernetes/Service Mesh SSL. 
+I hope you got some value from the above walkthrough and most importantly, hopefully forwards any discussions you might be having in your team on how you treat your Kubernetes/Service Mesh SSL. 

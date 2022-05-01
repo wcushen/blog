@@ -6,14 +6,14 @@ description: "Service Mesh"
 excerpt: "Service Mesh"
 date:       2022-04-18
 author:         "Will Cushen"
-image: "/img/2022-04-mtls-service-mesh-nginx/fence-locks.jpg"
+image: "/img/2022-05-service-mesh-reverse-proxy-mtls/fence-locks.jpg"
 published: true
 tags:
     - Microservice
     - Service Mesh
     - Kubernetes
     - Istio
-categories: [ Tech ]
+#categories: [ Tech ]
 URL: "/2022-servicemesh"
 ---
 
@@ -41,7 +41,7 @@ _Why stand up an external Load Balancer when we can run a perfectly adequate ing
 
 With an L7 external load balancer outside the mesh we're attempting to depict a common enterprise scenario with a GTM/LTM fronting various virtual and containerised applications and offloading features such as DDoS mitigation and traffic filtering to a dedicated appliance. Additionally, we may be tailoring our solution for mutli-cluster and mutli-regional load balancing, the latter particularly relevant to the cloud. 
 
-Moreover, security benchmarks such as the **Payment Card Industry - Data Security Standard** (PCI - DSS), inbound traffic is a strict _no-no_ for Internet to Cardholder Data Environment (CDE) where bringing in an intermediate server or reverse proxy in the DMZ could address this compliance requirement.
+Moreover, security benchmarks such as the **Payment Card Industry - Data Security Standard** (PCI - DSS), declare inbound traffic is a strict _no-no_ for Internet to Cardholder Data Environment (CDE)communication. Bringing in an intermediate server or reverse proxy in the DMZ serves as one approach to address this compliance requirement.
 
 {{% notice info %}}
 PCI-DSS 1.3.1: _Implement a DMZ to limit inbound traffic to only system components that provide authorized publicly accessible services, protocols, and ports._
@@ -49,7 +49,7 @@ PCI-DSS 1.3.1: _Implement a DMZ to limit inbound traffic to only system componen
 
 The example in this article represents are very stripped down, rudimentary setup of an NGINX Reverse Proxy fronting an **httpbin** workload running in an instance of OpenShift Service Mesh 2.x; a birthchild of the Istio project. The intention is to highlight a prominent security feature in mTLS that is becoming increasingly sought after, although not unique to, in microservices and service mesh technologies alike. 
 
-![Service Mesh ingress via NGINX with mTLS](/img/2022-04-mtls-service-mesh-nginx/istio-diagram.png)
+![Service Mesh ingress via NGINX with mTLS](/img/2022-05-service-mesh-reverse-proxy-mtls/istio-diagram.png)
 
 *Although Log4J isn't a straight up SSL vulnerability as say Heartbleed some years ago, it certainly compelled SecOps teams to _really_ consider the security posture of their software stack.  
 
@@ -125,7 +125,7 @@ spec:
 EOF
 ```
 
-We should see the status of the Member Roll as **CONFIGURED** 
+We should see the status of the Member Roll as **CONFIGURED**.
 
 ```yaml
 $  oc get smmr -n istio-system default
@@ -142,9 +142,9 @@ To make this pod run in OpenShift, we need to allow it to use the `anyuid` Secur
 {{% /notice %}}
 
 ```yaml
-$ oc project httpbin
-$ oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml
-$ oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject\":\"true\"}}}}}"
+$ oc project httpbin && \
+oc apply -f https://raw.githubusercontent.com/istio/istio/release-1.13/samples/httpbin/httpbin.yaml && \
+oc patch deployment httpbin --patch "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"sidecar.istio.io\/inject\":\"true\"}}}}}"
 ```
 
 **_OR_** if we'd like to do this at a global level affecting all workloads in the namespace then we can do this via `oc label`
@@ -155,8 +155,7 @@ $ oc label namespace httpbin istio-injection=enabled --overwrite
 
 ```yaml
 $ oc adm policy add-scc-to-user anyuid -z httpbin && \
-oc patch deployment/httpbin --patch \
-   "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"last-restart\":\"`date +'%s'`\"}}}}}"
+oc rollout restart deployment/httpbin
 ```
  
 {{% notice tip %}}
@@ -167,7 +166,7 @@ Grab the Kiali route:
 
 ```yaml
 $ oc get route kiali -n istio-system
-NAME    HOST/PORT                                                             PATH   SERVICES   PORT    TERMINATION          WILDCARD
+NAME    HOST/PORT                                       PATH   SERVICES   PORT    TERMINATION          WILDCARD
 kiali   kiali-istio-system.apps.cluster-sandbox-1.com          kiali      <all>   reencrypt/Redirect   None
 ```
 
@@ -179,7 +178,7 @@ If we observe a green tick under Health and no <img style='display:inline;' src=
 </p>
 {{< /rawhtml >}}
 
-![](/img/2022-04-mtls-service-mesh-nginx/httpbin-kiali-health.png)
+![](/img/2022-05-service-mesh-reverse-proxy-mtls/httpbin-kiali-health.png)
 
 ### Step 5: Generating server certificates and keys for our application
 
@@ -189,17 +188,17 @@ First let's create of Root CA and Private Key.
 
 
 ```yaml
-$ mkdir /var/tmp/{certs,private}
-$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example Corp./CN=example.com' -keyout /var/tmp/private/rootCAKey.pem -out /var/tmp/certs/rootCACert.pem
+$ mkdir /var/tmp/{certs,private} && \
+openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=Example Corp./CN=example.com' -keyout /var/tmp/private/rootCAKey.pem -out /var/tmp/certs/rootCACert.pem
 ```
 
 Next, let's generate a Certificate Signing Request (CSR) which we will then sign.
 
 ```yaml
-$ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}')
-$ CN=httpbin.$SUBDOMAIN
-$ openssl req -out /var/tmp/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/httpbin.example.com.key -subj "/CN=${CN}/O=httpbin organization"
-$ openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem -set_serial 0 -in /var/tmp/certs/httpbin.example.com.csr -out /var/tmp/certs/httpbin.example.com.crt
+$ SUBDOMAIN=$(oc whoami --show-console  | awk -F'console.' '{print $3}') && \
+CN=httpbin.$SUBDOMAIN && \
+openssl req -out /var/tmp/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/httpbin.example.com.key -subj "/CN=${CN}/O=httpbin organization" && \
+openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem -set_serial 0 -in /var/tmp/certs/httpbin.example.com.csr -out /var/tmp/certs/httpbin.example.com.crt
 ```
 
 Finally, we'll store this in TLS secret to later refer to in our Gateway deployment.
@@ -248,7 +247,7 @@ We can verify the route's creation in the `istio-system` namespace.
 
 ```yaml
 $ oc get route -n istio-system -l maistra.io/gateway-name=httpbin
-NAME                               HOST/PORT                                                  PATH   SERVICES               PORT    TERMINATION   WILDCARD
+NAME                               HOST/PORT                            PATH   SERVICES               PORT    TERMINATION   WILDCARD
 httpbin-httpbin-dcfcfc0729048e03   httpbin.apps.cluster-sandbox-1.com          istio-ingressgateway   https   passthrough   None
 ```
 
@@ -284,8 +283,8 @@ And validate its deployment.
 
 ```yaml
 $ oc get virtualservice -n httpbin
-NAME      GATEWAYS      HOSTS                                                          AGE
-httpbin   ["httpbin"]   ["httpbin.apps.cluster-gvh54.gvh54.sandbox1250.opentlc.com"]   20s
+NAME      GATEWAYS      HOSTS                                    AGE
+httpbin   ["httpbin"]   ["httpbin.apps.cluster-sandbox-1.com"]   20s
 ```
 
 Performing the curl to simulate as if we were just any old client (i.e. only in possession of the Root CA), we are met with a `certificate required` error which is to be expected.
@@ -321,7 +320,7 @@ Let's create this certificate as a wildcard with a Subject Alternative Name (SAN
 
 
 ```yaml
-cat <<EOF >>req.cfg
+cat <<EOF > req.cfg
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -335,14 +334,14 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = *.example.com
 DNS.2 = *.frontend.example.com
+EOF
 ```
 
 And now we're clear to create our self-signed certificate.
 
 ```yaml
-$ openssl req -out /var/tmp/certs/example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/example.com.key -subj "/CN=reverseproxy.example.com/O=Example Org" -config req.cfg
-
-$ openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem  -CAcreateserial -in /var/tmp/certs/example.com.csr -out /var/tmp/certs/example.com.crt -extensions v3_req -extfile req.cfg
+$ openssl req -out /var/tmp/certs/example.com.csr -newkey rsa:2048 -nodes -keyout /var/tmp/private/example.com.key -subj "/CN=reverseproxy.example.com/O=Example Org" -config req.cfg && \
+openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem  -CAcreateserial -in /var/tmp/certs/example.com.csr -out /var/tmp/certs/example.com.crt -extensions v3_req -extfile req.cfg
 ```
 
 We should be at the point now where we run the same `curl` with the addition of the NGINX certificate and keys and get a valid response back from the server.
@@ -375,7 +374,9 @@ $ sudo yum install nginx -y
 We'll copy over all our created certificates and keys to more friendly directories for NGINX:
 
 ```yaml
-sudo mkdir -p /etc/nginx/ssl/{certs,private} && sudo cp /var/tmp/certs/* /etc/nginx/ssl/certs && sudo cp /var/tmp/private/* /etc/nginx/ssl/private
+sudo mkdir -p /etc/nginx/ssl/{certs,private} && \ 
+sudo cp /var/tmp/certs/* /etc/nginx/ssl/certs && \ 
+sudo cp /var/tmp/private/* /etc/nginx/ssl/private
 ```
 
 {{% notice warning %}}
@@ -387,7 +388,7 @@ Below is the complete excerpt of our reverse proxy config. Basically, we're sett
 The `proxy_pass` command directs all traffic on 443 to our **httpbin** Ingress Gateway on the edge of the mesh with the appropriate client certs that we validated in the previous `curl`.
 
 ```yaml
-$ cat /etc/nginx/conf.d/proxy.conf 
+$ sudo cat <<EOF > /etc/nginx/conf.d/proxy.conf 
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -423,6 +424,7 @@ server {
             proxy_set_header Connection "upgrade";
         }
 }
+EOF
 ```
 
 We've included the `example.com.crt` and `example.com.key` as both the client **AND** server certificate/key pair in this instance. This certificate is presented, when asked, to connections attempting to contact the reverse proxy server _in addition_ to representing the **ssl** certificate that will be present to the backend server; identified by `proxy_pass` which is our exposed `httpbin` application from the mesh.  

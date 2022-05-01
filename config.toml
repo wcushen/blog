@@ -31,7 +31,7 @@ home = ["HTML", "RSS", "Algolia"]
   leancloud_app_key = ""
 
   # algolia site search
-  algolia_search = true
+  algolia_search = false
   algolia_appId = ""
   algolia_indexName = ""
   algolia_apiKey = ""
@@ -57,7 +57,7 @@ home = ["HTML", "RSS", "Algolia"]
   twikoo_env_id = ""
 
   #Enable wechat pay & alipay to allow readers send reward money if they like the articles 
-  reward = true 
+  reward = false
   # reward_guide = "如果这篇文章对你有用,请随意打赏" 
 
   friends = false
@@ -80,7 +80,7 @@ home = ["HTML", "RSS", "Algolia"]
   github         = "https://github.com/wcushen"
   #wechat         = "your wechat qr code image"
   #medium        = "full profile url in medium"
-  #slack         = "full workspace url in slack"
+  slack         = "https://kubernetes.slack.com"
   #pinterest     = "full profile url in pinterest"
   #reddit        = "full profile url in reddit"
   #gitlab        = "full profile url in gitlab"
@@ -106,9 +106,9 @@ home = ["HTML", "RSS", "Algolia"]
   title = "unsplash"
   href = "https://unsplash.com"
   
-  [[params.addtional_menus]]
-  title =  "BOOKS"
-  href =  "/top/books/"
+  #[[params.addtional_menus]]
+  #title =  "BOOKS"
+  #href =  "/top/books/"
   [[params.addtional_menus]]
   title =  "ARCHIVE"
   href =  "/top/archive/"

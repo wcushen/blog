@@ -19,9 +19,9 @@ URL: "/2022-servicemesh"
 
 ## Service Mesh and Microservices
 
-Most in the IT industry now would be well acquainted with the meteoric rise of microservices that are paving the way for organisations to respond quicker to changing business needs and capitalise on the elasticity of the cloud. Going from monolithic to microservice is not without it's apparent challenges however; more moving parts equates to more overhead, that is if managed improperly. 
+Most in the IT industry now would be well acquainted with the meteoric rise of microservices; [9 out of 10](https://konghq.com/press-release/2022-api-microservices-report) technology leaders in fact. They have already transitioned in some form to _entirely distributed architectures_, paving the way for their organisations to respond quicker to changing business needs and capitalise on the elasticity of the cloud. Going from monolithic to microservice is not without its apparent challenges however; more moving parts equates to more overhead, that is if managed improperly. 
 
-The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the security, observability and traffic control of an organisation's applications.
+The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the **security, observability and traffic control** of an organisation's applications.
 
 On the heels of last year's Log4J and Log4Shell vulnerabilities*, irrespective of vertical, a zero-trust security framework is becoming a model organisations **want** but most are really in their infancy when it comes to adoption at 21% according this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
 
@@ -31,7 +31,7 @@ mTLS presents an option on the table for us to work towards zero-trust.
 
 When one visits a browser with HTTPS prefixed to the URL; the browser will attempt to validate the server's certificate to make sure they're really who they say they are. 
 
-mTLS upholds this Zero Trust paradigm, extending typical service-side SSL by _also_ requiring the client to present its certificates for validation as part of the TLS handshake. 
+mTLS upholds this zero-trust paradigm, extending typical service-side SSL by _also_ requiring the client to present its certificates for validation as part of the TLS handshake. 
 
 ## About the example
 

@@ -6,13 +6,13 @@ description: "Skupper Rocks"
 excerpt: "Skupper rocks again"
 date:       2022-04-04
 author:         "Will Cushen"
-image: "/img/2022-04-mtls-service-mesh-nginx/chairlift.jpg"
+image: "/img/2022-04-skupper-deep-dive/chairlift.jpg"
 published: true
 tags:
     - Microservice
     - Kubernetes
 #categories: [ Tech ]
-URL: "/2022-skupper"
+URL: "/2022-04-skupper-deep-dive"
 ---
 
 ## What is Skupper
@@ -21,18 +21,20 @@ The ubiquity of hybrid/multi-cloud architecture in enterprise today means that e
 
 The topopoly is relatively straightforward with the lightweight AMPq router brokering the traffic between namespaces. 
 
+![Skupper Diagram](/img/2022-04-skupper-deep-dive/skupper-diagram.png)
+
 
 ### Removing Silos for Hybrid Cloud
 
-Understanding the need the Skupper means taking stock of the growing hybrid-cloud boom as many organisations contend with the need to connect on-premise, private and public cloud applications. The inter-connect possibilities available through Skupper however, are not limited to, a mesh of Kubernetes clusters. As I alluded to above; virtualized, even mainframe-based workloads can be included in Skupper's fabric.
+Understanding the need for Skupper means taking stock of the growing hybrid-cloud boom as many organisations contend with the need to connect on-premise, private and public cloud applications. The inter-connect possibilities available through Skupper however, are not limited to, a mesh of Kubernetes clusters. As I alluded to above; virtualised, even mainframe-based workloads can be included in Skupper's fabric.
 
-In this post, we'll highlight the _flagship_ use case of encrypting (over mTLS) workload communication between *two* Kubernetes (OpenShift 4.10) clusters.
+In this post, we'll highlight the _flagship_ use case of encrypting workload communication (over mTLS) between *two* Kubernetes (OpenShift 4.10) clusters.
 
 ## About the deployment
 
 We will create a front and back-end microservice, deploying each in a separate cluster to show the 'magic' of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some OpenShift and Skupper nuances, which we'll outline below. 
 
-### Step 1: Installing Skupper CLI
+### Step 1: Installing the Skupper CLI
 
 Seeing we have an OpenShift cluster in the picture here, we do have the community-based Skupper Operator at our disposal. There are slight nuances I've found (when compared to the CLI method shown below), such as the provisioning of a `skupper-site-controller` which allows us to follow a declarative method to install Skupper. We can store our YAML files this way if we have GitOps practices we need to adhere to. 
 
@@ -47,7 +49,7 @@ $ curl https://skupper.io/install.sh | sh && \
 sudo mv .local/bin/skupper /usr/local/bin 
 ```
 
-### Step 2: Create our namespaces
+### Step 2: Creating our namespaces
 
 Log into your OCP clusters with `oc login`. We have created a `north` and a `south` namespace, which we will be deploying our two applications into. 
 
@@ -78,7 +80,7 @@ The credentials for internal console-auth mode are held in secret: 'skupper-cons
 Next we will roll out the Skupper componentry being the Router and Controller in each namespace, responsible for creating our Virtual Application Network (VAN) and watching for service annotations (`internal.skupper.io/controlled: "true"`), respectively.  
 
 {{% notice tip %}}
-For redundancy, we can also up the replica count on the router via `--router` to specify two or greater.
+For HA, we can also up the replica count on the router via `--router` to specify two or greater.
 {{% /notice %}}
 
 ```yaml
@@ -120,7 +122,7 @@ Site configured to link to https://claims-north.apps.cluster-one.example.com:443
 Check the status of the link using 'skupper link status'.
 ```
 
-It's important to know that once setup, in a Skupper mesh of **more** than two clusters; traffic will be completely bi-directional meaning that if the originating namespace (where the token was created initially) goes down; the network between those remaining participating clusters continues to be active.  
+It's important to know that once setup, in a Skupper mesh of **more** than two clusters; traffic will be completely bi-directional meaning that if the originating namespace (where the token was created initially) goes down; the network between those remaining participating clusters will continue to be active.  
 
 ```yaml
 $ skupper link status
@@ -168,7 +170,7 @@ $ curl $(oc get route frontend -o jsonpath='http://{.spec.host}') -I
 curl: (7) Failed to connect to frontend-north.apps.cluster-one.example.com port 80: Connection timed out
 ```
 
-Clearly, our frontend can't find the backend.
+Clearly, our `frontend` can't find the `hello` backend.
 
 ```yaml
 $ oc get pod
@@ -191,16 +193,19 @@ $ skupper expose deployment/hello --port 80
 deployment hello exposed as hello
 ```
 
-Observe the Service created.
+Observe the updated `skupper-services` ConfigMap and the created Service.
 
 ```yaml
+$ oc get cm skupper-services -o jsonpath='{.data}'
+{"hello":"{\"address\":\"hello\",\"protocol\":\"tcp\",\"ports\":[80],\"targets\":[{\"name\":\"hello\",\"selector\":\"app=hello,tier=backend,track=stable\",\"targetPorts\":{\"80\":80}}]}"}
+
 $ oc describe service hello
 ...
 Annotations:       internal.skupper.io/controlled: true
 Selector:          application=skupper-router,skupper.io/component=router
 ```
 
-Restart the frontend deployment.
+Restart the `frontend` deployment.
 
 ```yaml
 $ oc rollout restart deployment/frontend
@@ -220,8 +225,8 @@ $ curl $(oc get route frontend -o jsonpath='http://{.spec.host}')
 
 ## Conclusion
 
-Skupper as you can see, has been architected so each application administrator is in control of the their own inter-cluster connectivity as opposed to a `cluster-admin` delegation having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. Ultimately, it really depends who you intend to give the keys to in your environment. 
+Skupper as you can see, has been architected so each application administrator is in control of the their own inter-cluster connectivity as opposed to a `cluster-admin` delegation having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. _Ultimately_, it really depends who you intend to give the keys to in your environment. 
 
-Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the GitHub project. Things like extending to other layer 7 protocols beyond gRPC and HTTP are one of many active developments (at the time of writing) being worked on in the Skupper roadmap.
+Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the [GitHub project](https://github.com/skupperproject/skupper). Sought after features such as extending to other layer 7 protocols beyond gRPC and HTTP are one of many active developments (at the time of writing) being worked on in the Skupper roadmap.
 
 I hope you enjoyed this introductory post on Skupper!

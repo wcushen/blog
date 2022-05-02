@@ -4,7 +4,7 @@ title:      "Securing Microservices with mTLS"
 subtitle:   ""
 description: "Bolstering 'encryption in transit' through mutual TLS between external services and Istio"
 excerpt: "Service Mesh"
-date:       2022-04-18
+date:       2022-05-01
 author:         "Will Cushen"
 image: "/img/2022-05-service-mesh-reverse-proxy-mtls/fence-locks.jpg"
 published: true

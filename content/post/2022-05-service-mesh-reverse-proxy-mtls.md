@@ -170,11 +170,11 @@ NAME    HOST/PORT                                       PATH   SERVICES   PORT  
 kiali   kiali-istio-system.apps.cluster-sandbox-1.com          kiali      <all>   reencrypt/Redirect   None
 ```
 
-Go to **Workloads***, and view our deployed application under the namespace **httpbin**.
+Go to **Workloads**, and view our deployed application under the namespace `httpbin`.
 
 {{< rawhtml >}}
 <p>
-If we observe a green tick under Health and no <img style='display:inline;' src='/img/2022-04-mtls-service-mesh-nginx/missing-sidecar.png'/>warning in Details then we're all clear from a sidecar perspective.
+If we observe a green tick under Health and no <img style='display:inline;' src='/img/2022-05-service-mesh-reverse-proxy-mtls/missing-sidecar.png'/>warning in Details then we're all clear from a sidecar perspective.
 </p>
 {{< /rawhtml >}}
 
@@ -211,11 +211,9 @@ $ oc create secret generic httpbin-credential --from-file=tls.crt=/var/tmp/certs
 
 Gateways in Istio are applied to the standalone Envoy proxies at the edge of mesh. It's here where we'll assert our TLS configuration and the routing rules defined within a `VirtualService` which will be bound to the Gateway. 
 
-Again, we'll make use of the example in the Istio documentation - only with one important distinction. Instead of the TLS mode set to `SIMPLE`, we want to enforce `MUTUAL`. 
+Again, we'll make use of the example in the Istio [documentation](https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/#configure-a-tls-ingress-gateway-for-a-single-host) - only with one _important distinction_. Instead of the TLS mode set to `SIMPLE`, we want to enforce `MUTUAL`. 
 
-https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/#configure-a-tls-ingress-gateway-for-a-single-host
-
-we can go ahead and deploy our `Gateway` with the alteration  
+We can go ahead and deploy our `Gateway` with the alteration  
 
 ```yaml
 $ cat <<EOF | oc apply -f -

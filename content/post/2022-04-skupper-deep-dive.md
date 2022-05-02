@@ -19,7 +19,7 @@ URL: "/2022-04-skupper-deep-dive"
 
 The ubiquity of hybrid/multi-cloud architecture in enterprise today means that engineering teams are met with challenging design decisions on how to manage secure connections not only between regionally distributed workloads but different hosting stacks (i.e. containerised vs. virtualised). Skupper aims to simplify this task, marketing itself as a layer 7 service interconnect that allows namespaced-workloads across Kubernetes clusters to connect as if there were local. 
 
-The topopoly is relatively straightforward with the lightweight AMPq router brokering the traffic between namespaces. 
+The topopoly is relatively straightforward with the lightweight Apache Qpid router brokering the traffic between namespaces. 
 
 ![Skupper Diagram](/img/2022-04-skupper-deep-dive/skupper-diagram.png)
 

@@ -153,7 +153,7 @@ $ oc apply -f https://k8s.io/examples/service/access/frontend-deployment.yaml
 deployment.apps/frontend created
 ```
 
-Now create and expose the frontend service.
+Now create and expose the `frontend` service.
 
 At this point, we can now initiate the frontend service and expose as a typical OpenShift Router for external access. Alternatively, we could expose via `--type LoadBalancer` and access via an `externalIP`.
 

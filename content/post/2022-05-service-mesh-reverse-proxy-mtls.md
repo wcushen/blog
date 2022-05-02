@@ -135,7 +135,7 @@ default   1/1     Configured   10s
 
 ### Step 4: Deploying our application
 
-This sample application runs a single-replica httpbin as an Istio service taken from this [documentation](https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to Enovy proxy sidecar injection by configuring the annotation `sidecar.istio.io/inject=true`. The Envoy proxy is the Istio component responsible for brokering the in- and outbound communication to the workload (pod) it is tied to. More information can be found here on all the pieces of the puzzle that is the [Service Mesh architecture](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html).
+This sample application runs a single-replica httpbin as an Istio service taken from this [documentation](https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to Enovy proxy sidecar injection by configuring the annotation `sidecar.istio.io/inject=true`. The Envoy proxy is the Istio component responsible for brokering the in- and outbound communication to the workload (pod) it is tied to. More information can be found here on all the pieces of the puzzle that is [Service Mesh architecture](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html).
 
 {{% notice warning %}}
 To make this pod run in OpenShift, we need to allow it to use the `anyuid` Security Context Constraints (SCC) which we'll bind to the `default` service account of the `httpbin` namespace

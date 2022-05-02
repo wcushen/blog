@@ -2,7 +2,7 @@
 layout:     post
 title:      "Securing Microservices with mTLS"
 subtitle:   ""
-description: "Heightening 'encryption in transit' through mutual TLS between external services and Istio"
+description: "Bolstering 'encryption in transit' through mutual TLS between external services and Istio"
 excerpt: "Service Mesh"
 date:       2022-04-18
 author:         "Will Cushen"

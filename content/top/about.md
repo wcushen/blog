@@ -1,25 +1,11 @@
-![](/img/zhaohuabing.png)  **_Huabing Zhao_** is an ICT veteran with a passion for open source. He has a solid experience in the telecommunication and information technology industry for more than 17 years.
+## About Me
 
-Throughout his career, he has built a number of large-scale, cross-country OSS/BSS platforms/systems and operation tools, most of them are still running in productions.
+**Will Cushen** is a Senior Consultant at Red Hat. His days are spent supporting customers in their containerisation journeys with OpenShift and getting acquainted with emerging technologies in the Kubernetes ecosystem. 
 
-He loves open source and has been contributing to a variety of open source projects, including Istio(Service Mesh https://istio.io), ONAP(Open Network Automation Platform https://wiki.onap.org), Hugo(static site generators https://themes.gohugo.io/hugo-theme-cleanwhite/), etc.
+On top of that, he's a competent (Ansible) automater of things and a co-author of an Australian security benchmark for Red Hat Enterprise Linux as part of the [ComplianceAsCode](https://github.com/ComplianceAsCode) project. 
 
-He also has strong interests in various tech stuff such as Artificial Intelligence, Cryptocurrencies, Smart Home.
+_And_ for kicks, he's usually out experiencing the world on his bicycle every chance he gets :bicyclist:
 
-Huabing holds a BS in Computer Science and Technology from Chongqing University in China.
+This blog will serve as a spot for a tell-all of things I'm working on professionally or kicking the tires on at home - as a way to give back to the immense knowledge bank on the web, contributed to by very smart people that I'm benefiting from everyday. I've defaulted to the path of least resistance in standing up this blog, using a [Hugo](https://gohugo.io/) static theme by [@huabing](https://github.com/zhaohuabing) hosted on AWS Amplify. There's lots to dig about the ease of both which I'm really enjoying. 
 
-Currently, Huabing is working on a 5G NFV&SDN orchestration and management platform, at the same time, he also wears the hat of PTL in ONAP(http://www.onap.org) open source project.
-
-He is happy with his current job, but also willing to take new challenges if the opportunity matches his career path.
-
-While he is not working, he enjoys watching movies, swimming, hiking, travelling, writing blogs and learning languages.
-
-Feel free to connect Huabing via Github (https://github.com/zhaohuabing) or drop him an email (zhaohuabing@gmail.com).
-
-## Talks
-
-* [Service Mesh in Action with ONAP] (https://www.slideshare.net/HuabingZhao/service-mesh-in-action-with-onap) GNTC, 南京, 2018
-* [MSB to Support Carrier Grade ONAP Microservice Architecture with Service Mesh] (https://www.slideshare.net/HuabingZhao/msb-to-support-carrier-grade-onap-microservice-architecture-with-service-mesh) ONS, Los Angeles, 2018
-* [Microservice Powered Orchestration](https://www.slideshare.net/HuabingZhao/microservice-powered-orchestration-126100339) ONS, Santa Clara, 2017
-* [MSB Technical Deep Dive and ONAP Use Cases] (https://www.slideshare.net/HuabingZhao/msb-depp-dive/) ONAP Developer Event, New Jersey, 2017
-* [Microservice Bus Tutorial] (https://www.slideshare.net/HuabingZhao/microservice-bus-tutorial) ONAP Developer Event, Paris, 2017
+If you have any questions or would like to chat, email and Slack are the best places to reach me! 

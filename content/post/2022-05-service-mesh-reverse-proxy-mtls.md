@@ -23,7 +23,7 @@ Most in the IT industry now would be well acquainted with the meteoric rise of m
 
 The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the **security, observability and traffic control** of an organisation's applications.
 
-On the heels of last year's Log4J and Log4Shell vulnerabilities*, irrespective of vertical, a zero-trust security framework is becoming a model organisations **want** but most are really in their infancy when it comes to adoption at 21% according this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
+On the heels of last year's Log4J and Log4Shell vulnerabilities*, irrespective of vertical, a zero-trust security framework is becoming a model organisations want but most are really in their infancy when it comes to adoption at 21% according this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
 
 mTLS presents an option on the table for us to work towards zero-trust. 
 

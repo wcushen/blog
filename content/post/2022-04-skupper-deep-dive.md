@@ -6,7 +6,7 @@ description: "Bridging multicloud workloads across Kubernetes clusters with the 
 excerpt: "Skupper rocks again"
 date:       2022-04-04
 author:         "Will Cushen"
-image: "/img/2022-04-skupper-deep-dive/dames-point-bridge.jpg"
+image: "/img/2022-04-skupper-deep-dive/bridge-wide.jpg"
 published: true
 tags:
     - Microservice

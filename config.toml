@@ -3,7 +3,7 @@ title = "WJC.page"
 theme = "hugo-theme-cleanwhite"
 languageCode = "en-us"
 # Enable comments by entering your Disqus shortname
-disqusShortname = "wjc.page"
+disqusShortname = "wjc-page"
 googleAnalytics = "UA-88625944-3"
 preserveTaxonomyNames = true
 paginate = 5 #frontpage pagination

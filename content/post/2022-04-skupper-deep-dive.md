@@ -32,11 +32,11 @@ In this post, we'll highlight the _flagship_ use case of encrypting workload com
 
 ## About the deployment
 
-We will create a front and back-end microservice, deploying each in a separate cluster to show the real value prop of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some 'Skupper on OpenShift' nuances, which we'll outline below. 
+We will create a front and back-end microservice, deploying each in a separate cluster to show the real value prop of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some 'Skupper on OpenShift' nuances which we'll outline below. 
 
 ### Step 1: Installing the Skupper CLI
 
-Seeing we have an OpenShift cluster in the picture here, we do have the community-based Skupper Operator at our disposal. There are slight nuances I've found (when compared to the CLI method shown below), such as the provisioning of a `skupper-site-controller` which allows us to follow a declarative method to install Skupper. We can store our YAML files this way if we have GitOps practices we need to adhere to. 
+Seeing we have an OpenShift cluster in the picture here, we do have the community-based Skupper Operator at our disposal. There are slight distinctions I've found (when compared to the CLI method shown below), such as the provisioning of a `skupper-site-controller` which allows us to follow a declarative method to install Skupper. We can store our YAML files this way if we have GitOps practices we need to adhere to. 
 
 In the interest of this post to get folks up and running, we'll stick with what the Skupper documentation refers to as the **_'primary entrypoint'_** for installing Skupper and do so via its CLI. 
 
@@ -51,7 +51,7 @@ sudo mv .local/bin/skupper /usr/local/bin
 
 ### Step 2: Creating our namespaces
 
-Log into your OCP clusters with `oc login`. We have created a `north` and a `south` namespace, which we will be deploying our two applications into. 
+We have created a `north` and a `south` namespace which we will be deploying our two applications into. 
 
 We can see the output of `skupper status` proves the absence of anything Skupper at this point.
 
@@ -112,9 +112,9 @@ $ skupper token create $HOME/secret.yaml
 Token written to /home/lab-user/secret.yaml 
 ```
 
-This renders a YAML file for the **Connecting** namespace on the `south` cluster to maintain as a `secret`.
+This renders a YAML file for the **Connecting** (`south`) namespace to write as a `secret`.
 
-Once transferred over via `scp` or other means, we can then create that link to provision the linkage between the two clusters.
+Once transferred over via `scp` or other means, we can then create that secret to establish the connection between the two clusters.
 
 ```yaml
 $ skupper link create $HOME/secret.yaml
@@ -122,7 +122,7 @@ Site configured to link to https://claims-north.apps.cluster-one.example.com:443
 Check the status of the link using 'skupper link status'.
 ```
 
-It's important to know that once setup, in a Skupper mesh of **more** than two clusters; traffic will be completely bi-directional meaning that if the originating namespace (where the token was created initially) goes down; the network between those remaining participating clusters will continue to be active.  
+It's important to know that once setup, in a Skupper mesh of **more** than two clusters; traffic will be completely _bi-directional_, meaning that if the originating namespace (where the token was created initially) goes down; the network between those remaining participating clusters will continue to be active.  
 
 ```yaml
 $ skupper link status
@@ -133,8 +133,9 @@ Link link1 is active
 
 Now with our multi-cluster Skupper network in place, it's time to spin up the front and back-end services that will comprise our microservice using the YAML definitions verbatim from the documentation link above. 
 
+Coming back to those _'tweaks'_ we said we would make. Effectively, we need to: 
+
 {{% notice info %}}
-Circling back to those 'tweaks' we said we would make. Effectively, we need to: 
 **1.** Allow the `default` Service Accounts in _both_ namespaces to use the privileged port of **80** via `oc adm policy add-scc-to-user anyuid -z default`
 **2.** Update the name of the backend deployment to `hello`, since this will be the internal DNS name by which the frontend sends requests to the backend worker Pods (set inside `nginx.conf`). Unfortunately we can't as of yet modify the Service name of a Deployment when we execute a `skupper expose`
 {{% /notice %}}
@@ -155,7 +156,7 @@ deployment.apps/frontend created
 
 Now create and expose the `frontend` service.
 
-At this point, we can now initiate the frontend service and expose as a typical OpenShift Router for external access. Alternatively, we could expose via `--type LoadBalancer` and access via an `externalIP`.
+At this point, we can now initiate the frontend service and expose as a typical OpenShift Route for external access. Alternatively, we could expose via `--type LoadBalancer` and access via an `externalIP`.
 
 ```yaml
 $ oc expose deployment frontend --port 80 && oc expose service frontend
@@ -214,7 +215,7 @@ deployment.apps/frontend restarted
 
 ### Step 8: Validating the frontend now responds
 
-Now we're at a point where we can expect a response back from the frontend with the backend now exposed via Skupper.
+Now we're at a point where we can expect a response back from the frontend with the backend _now exposed via Skupper_.
 
 You should see the message generated by the backend:
 
@@ -225,8 +226,8 @@ $ curl $(oc get route frontend -o jsonpath='http://{.spec.host}')
 
 ## Conclusion
 
-Skupper as you can see, has been architected so each application administrator is in control of the their own inter-cluster connectivity as opposed to a `cluster-admin` delegation having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. _Ultimately_, it really depends who you intend to give the keys to in your environment. 
+Skupper as you can see, has been architected so each application administrator **is in control** of the their own inter-cluster connectivity as opposed to a `cluster-admin` delegation having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. _Ultimately_, it really depends who you intend to give the keys to in your environment. 
 
-Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the [GitHub project](https://github.com/skupperproject/skupper). Sought after features such as extending to other layer 7 protocols beyond gRPC and HTTP are one of many active developments (at the time of writing) being worked on in the Skupper roadmap.
+Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the [GitHub project](https://github.com/skupperproject/skupper). Sought after features such as extending to other layer 7 protocols beyond gRPC and HTTP or making use of custom certificates are some of many active developments (at the time of writing) being worked on in the Skupper roadmap.
 
 I hope you enjoyed this introductory post on Skupper!

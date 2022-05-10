@@ -60,9 +60,7 @@ $ oc project
 Using project "north" on server "https://api.cluster-one.example.com:6443".
 
 $ skupper status
-Skupper is enabled for namespace "north" in interior mode. It is connected to 1 other site. It has 1 exposed service.
-The site console url is:  https://skupper-north.apps.cluster-one.example.com
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+Skupper is not enabled for namespace 'north'
 ``` 
 
 ```yaml
@@ -70,9 +68,7 @@ $ oc project
 Using project "south" on server "https://api.cluster-two.example.com:6443".
 
 $ skupper status
-Skupper is enabled for namespace "south" in interior mode. It is connected to 1 other site. It has 1 exposed service.
-The site console url is:  https://skupper-south.apps.cluster-two.example.com
-The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+Skupper is not enabled for namespace 'south'
 ```
 
 ### Step 3: Installing the Skupper Router and Controller
@@ -87,6 +83,11 @@ For HA, we can also up the replica count on the router via `--router` to specify
 $ skupper init --site-name north
 Skupper is now installed in namespace 'north'.  Use 'skupper status' to get more information.
 
+$ skupper status
+Skupper is enabled for namespace "north" in interior mode. It is connected to 1 other site. It has 1 exposed service.
+The site console url is:  https://skupper-north.apps.cluster-one.example.com
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
+
 $ oc get pod
 NAME                                          READY   STATUS    RESTARTS   AGE
 skupper-router-555dcb8f4d-5g24z               2/2     Running   0          6s
@@ -96,6 +97,11 @@ skupper-service-controller-547d68b9ff-24bfq   1/1     Running   0          4s
 ```yaml
 $ skupper init --site-name south
 Skupper is now installed in namespace 'south'.  Use 'skupper status' to get more information.
+
+$ skupper status
+Skupper is enabled for namespace "south" in interior mode. It is connected to 1 other site. It has 1 exposed service.
+The site console url is:  https://skupper-south.apps.cluster-two.example.com
+The credentials for internal console-auth mode are held in secret: 'skupper-console-users'
 
 $ oc get pod
 NAME                                          READY   STATUS    RESTARTS   AGE

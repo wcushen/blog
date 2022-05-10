@@ -3,7 +3,7 @@ layout:     post
 title:      "Securing Microservices with mTLS"
 subtitle:   ""
 description: "Boosting 'encryption in transit' through mutual TLS between external services and Istio"
-excerpt: "Service Mesh"
+excerpt: "How to configure mTLS in Istio"
 date:       2022-05-01
 author:         "Will Cushen"
 image: "/img/2022-05-service-mesh-reverse-proxy-mtls/fence-locks.jpg"

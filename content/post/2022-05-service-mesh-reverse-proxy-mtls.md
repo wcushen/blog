@@ -19,17 +19,17 @@ URL: "/2022-05-service-mesh-reverse-proxy-mtls"
 
 ## Service Mesh and Microservices
 
-Most in the IT industry now would be familiar with the meteoric rise of microservices; [9 out of 10](https://konghq.com/press-release/2022-api-microservices-report) technology leaders in fact. That 90% have already transitioned in some form to _entirely distributed architectures_, paving the way for their organisations to respond quicker to changing business needs and capitalise on the elasticity of the cloud. Going from monolithic to microservice is not without its apparent challenges however; more moving parts often equates to more overhead, that is if managed improperly. 
+[9 out of 10](https://konghq.com/press-release/2022-api-microservices-report) technology leaders have already transitioned in some form to _entirely distributed architectures_, allowing their organisations to respond more rapidly to changing business needs and capitalise on the elasticity of the cloud. Going from monolithic to microservice is not without its apparent challenges however; more moving parts often equates to more overhead, that is if managed improperly. 
 
 The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the **security, observability and traffic control** of an organisation's applications.
 
-On the heels of last year's Log4J and Log4Shell vulnerabilities*, irrespective of vertical, a zero-trust security framework is becoming a model that organisations want yet most in reality are in their infancy when it comes to adoption at 21% according this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
+Only recently in December 2021, everybody was left hustling to find out if their software includes log4j software. Securing east-west traffic again came into serious focus and is certainly something not new, but using mutual Transport Layer Security (mTLS) adds an _additional_ layer of defense beyond perimeter controls, moving us closer to a highly secure Zero Trust framework. This model of assuming every digital transaction is malicious is something organisations want to achieve, yet in reality the majority are in their infancy when it comes to adoption at 21% according to this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
 
-**mTLS** presents an option on the table for us to work towards zero-trust. 
+**mTLS** does offer a way for us to limit our "blast-radius" and constrain the impact of a live security flaw as a hacker would not be able to arbitrarily create certificates without being observed whilst traversing the network.
 
 ### What is mTLS?
 
-When one visits a browser with HTTPS prefixed to the URL; the browser will attempt to validate the server's certificate to make sure they are who they really say they are. 
+When one visits a browser with HTTPS prefixed to the URL, the browser will attempt to validate the server's certificate to make sure they are who they really say they are. 
 
 mTLS upholds this zero-trust paradigm, extending typical service-side SSL by _also_ requiring the client to present its certificates for validation as part of the TLS handshake. 
 
@@ -50,8 +50,6 @@ Moreover, security benchmarks such as the **Payment Card Industry - Data Securit
 The example in this article represents are very stripped down, rudimentary setup of an NGINX Reverse Proxy fronting an **httpbin** workload running in an instance of OpenShift Service Mesh 2.x; a birthchild of the Istio project. The intention here is to highlight a prominent security feature in mTLS that is becoming increasingly sought after, although not unique to, in microservices and service mesh technologies alike. 
 
 ![Service Mesh ingress via NGINX with mTLS](/img/2022-05-service-mesh-reverse-proxy-mtls/istio-diagram.png)
-
-*Although Log4J isn't a straight up SSL vulnerability as say Heartbleed some years ago, it certainly compelled SecOps teams to take stock and _really_ consider the security posture of their software stack.  
 
 ### Step 1: Installing Service Mesh 
 

@@ -3,7 +3,7 @@ layout:     post
 title:      "Deep Dive on Skupper"
 subtitle:   ""
 description: "Bridging multicloud workloads across Kubernetes clusters with the new interconnect on the block"
-excerpt: "Skupper rocks again"
+excerpt: "An introductory post on Skupper/Application Edge Interconnect"
 date:       2022-04-04
 author:         "Will Cushen"
 image: "/img/2022-04-skupper-deep-dive/bridge-wide.jpg"
@@ -22,7 +22,6 @@ The ubiquity of hybrid/multi-cloud architecture in enterprise today means that e
 The topopoly is relatively straightforward with the lightweight Apache Qpid router brokering the traffic between namespaces. 
 
 ![Skupper Diagram](/img/2022-04-skupper-deep-dive/skupper-diagram.png)
-
 
 ### Removing Silos for Hybrid Cloud
 

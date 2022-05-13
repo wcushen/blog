@@ -17,7 +17,7 @@ home = ["HTML", "RSS", "Algolia"]
 [params]
   header_image = "img/self-portsea-back.jpg"
   SEOTitle = "Blog by Will Cushen"
-  description = "Will Cushen, Red Hatter, A doer of Kube things"
+  description = "Will Cushen, Red Hatter, A doer of DevOps things"
   keyword = "wcushen, Will Cushen, will cushen, Istio, Kubernetes, OpenShift, Microservice"
   slogan = "a Technology Blog"
 

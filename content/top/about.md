@@ -4,7 +4,7 @@
 
 On top of that, he's a competent (Ansible) automater of things and a co-author of an Australian security benchmark for Red Hat Enterprise Linux as part of the [ComplianceAsCode](https://github.com/ComplianceAsCode) project. 
 
-_And_ for kicks, he's usually out experiencing the world on his bicycle every chance he gets :bicyclist:
+_And_ for kicks, he's usually out experiencing the world on his bike every chance he gets :bicyclist:
 
 This blog will serve as a spot for a tell-all of things being worked on in his professional setting or kicking the tires on at home; as a way to give back to the immense bank of knowledge on the web, contributed to by very smart people that he's benefiting from everyday. 
 

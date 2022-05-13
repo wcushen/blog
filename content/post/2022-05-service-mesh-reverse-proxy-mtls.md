@@ -23,9 +23,9 @@ URL: "/2022-05-service-mesh-reverse-proxy-mtls"
 
 The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the **security, observability and traffic control** of an organisation's applications.
 
-Only recently in December 2021, everybody was left hustling to find out if their software includes log4j software. Securing east-west traffic again came into serious focus and is certainly something not new, but using mutual Transport Layer Security (mTLS) adds an _additional_ layer of defense beyond perimeter controls, moving us closer to a highly secure Zero Trust framework. This model of assuming every digital transaction is malicious is something organisations want to achieve, yet in reality the majority are in their infancy when it comes to adoption at 21% according to this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
+Only recently in December 2021, everybody was left hustling to find out if their software included log4j software. Securing east-west traffic again came into serious focus and using such measures as mutual Transport Layer Security (mTLS) adds an _additional_ layer of defense beyond perimeter controls, moving us closer to a highly secure Zero Trust framework. This model of assuming every digital transaction is malicious is something organisations want to achieve, yet in reality the majority are in their infancy when it comes to adoption at 21% according to this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
 
-**mTLS** does offer a way for us to limit our "blast-radius" and constrain the impact of a live security flaw as a hacker would not be able to arbitrarily create certificates without being observed whilst traversing the network.
+**mTLS** does offer a way for us to limit our 'blast-radius' and constrain the impact of a live security flaw as hackers would not be able to arbitrarily create certificates without being observed whilst traversing the network.
 
 ### What is mTLS?
 

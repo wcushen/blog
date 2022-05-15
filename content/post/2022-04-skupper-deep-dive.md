@@ -25,17 +25,17 @@ The topopoly is relatively straightforward with the lightweight Apache Qpid rout
 
 ### Removing Silos for Hybrid Cloud
 
-Understanding the need for Skupper means taking stock of the growing hybrid-cloud boom as many organisations contend with the need to connect on-premise, private and public cloud applications. The inter-connect possibilities available through Skupper however, are not limited to, a mesh of Kubernetes clusters. As I alluded to above; virtualised, even mainframe-based workloads can be included in Skupper's fabric.
+Understanding the need for Skupper means taking stock of the growing hybrid-cloud boom as many organisations contend with the need to connect on-premise, private and public cloud applications. The inter-connect possibilities available through Skupper however, are not limited to, a mesh of Kubernetes clusters. As alluded to above; virtualised, even mainframe-based workloads can be included in Skupper's fabric.
 
 In this post, we'll highlight the _flagship_ use case of encrypting workload communication (over mTLS) between *two* Kubernetes (OpenShift 4.10) clusters.
 
 ## About the deployment
 
-We will create a front and back-end microservice, deploying each in a separate cluster to show the real value prop of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/) where we'll apply some minor tweaking to cater for some 'Skupper on OpenShift' nuances which we'll outline below. 
+We will create a front and back-end microservice, deploying each in a separate cluster to show the real value prop of Skupper. The example used can be found in these Kubernetes docs [here](https://kubernetes.io/docs/tasks/access-application-cluster/connecting-frontend-backend/). 
 
 ### Step 1: Installing the Skupper CLI
 
-Seeing we have an OpenShift cluster in the picture here, we do have the community-based Skupper Operator at our disposal. There are slight distinctions I've found (when compared to the CLI method shown below), such as the provisioning of a `skupper-site-controller` which allows us to follow a declarative method to install Skupper. We can store our YAML files this way if we have GitOps practices we need to adhere to. 
+Seeing we have an OpenShift cluster in the picture here, we do have the community-based Skupper Operator at our disposal. There are slight distinctions (when compared to the CLI method shown below), such as the provisioning of a `skupper-site-controller` which allows us to follow a declarative method to install Skupper. We can render our YAML files this way if we have GitOps practices we need to adhere to. 
 
 In the interest of this post to get folks up and running, we'll stick with what the Skupper documentation refers to as the **_'primary entrypoint'_** for installing Skupper and do so via its CLI. 
 
@@ -136,9 +136,9 @@ Link link1 is active
 
 ### Step 5: Deploying our two detached applications
 
-Now with our multi-cluster Skupper network in place, it's time to spin up the front and back-end services that will comprise our microservice using the YAML definitions verbatim from the documentation link above. 
+Now with our multi-cluster Skupper network in place, it's time to spin up the front and back-end services that will comprise our microservice using the YAML definitions as is from the documentation link above. 
 
-Coming back to those _'tweaks'_ we said we would make. Effectively, we need to: 
+As a side note, we'll need to implement some _'tweaks'_ to allow these _privileged_ workloads to run on our OpenShift clusters:
 
 {{% notice info %}}
 **1.** Allow the `default` Service Accounts in _both_ namespaces to use the privileged port of **80** via `oc adm policy add-scc-to-user anyuid -z default`
@@ -231,8 +231,8 @@ $ curl $(oc get route frontend -o jsonpath='http://{.spec.host}')
 
 ## Conclusion
 
-Skupper as you can see, has been architected so each application administrator **is in control** of the their own inter-cluster connectivity as opposed to a `cluster-admin` delegation having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. _Ultimately_, it really depends who you intend to give the keys to in your environment. 
+Skupper as you can see, has been architected so each application administrator **is in control** of the their own inter-cluster connectivity as opposed to a `cluster-admin` having to manage everything. Some may argue the drawback as a result, is a decentralised mesh that could become problematic at scale when it comes to management and observability from a single point. _Ultimately_, it really depends who you intend to give the keys to in your environment. 
 
-Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the [GitHub project](https://github.com/skupperproject/skupper). Sought after features such as extending to other layer 7 protocols beyond gRPC and HTTP or making use of custom certificates are some of many active developments (at the time of writing) being worked on in the Skupper roadmap.
+Finally, if we wanted to observe a graphical view of the sites and exposed services, the default-enabled Skupper Console provides us with some useful network topology data which we didn't look at in this demo. Skupper's development can be tracked on the official site or directly from the code on the [GitHub project](https://github.com/skupperproject/skupper). Sought after features such as the use of custom certificates for the mTLS bridge are some of many active developments (at the time of writing) being worked on in the Skupper roadmap.
 
 I hope you enjoyed this introductory post on Skupper!

@@ -4,7 +4,7 @@ title:      "Securing Microservices with mTLS"
 subtitle:   ""
 description: "Boosting 'encryption in transit' through mutual TLS between external services and Istio"
 excerpt: "How to configure mTLS in Istio"
-date:       2022-05-01
+date:       2022-05-15
 author:         "Will Cushen"
 image: "/img/2022-05-service-mesh-reverse-proxy-mtls/fence-locks.jpg"
 published: true
@@ -23,25 +23,25 @@ URL: "/2022-05-service-mesh-reverse-proxy-mtls"
 
 The array of technologies in the microservices ecosystem are designed to help engineers and architects improve the **security, observability and traffic control** of an organisation's applications.
 
-Only recently in December 2021, everybody was left hustling to find out if their software included log4j software. Securing east-west traffic again came into serious focus and using such measures as mutual Transport Layer Security (mTLS) adds an _additional_ layer of defense beyond perimeter controls, moving us closer to a highly secure Zero Trust framework. This model of assuming every digital transaction is malicious is something organisations want to achieve, yet in reality the majority are in their infancy when it comes to adoption at 21% according to this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
+Only recently in December 2021, everybody was left hustling to find out if their software included Log4j software. Securing east-west traffic again came into serious focus and using such measures as mutual Transport Layer Security (mTLS) adds an _additional_ layer of defense beyond perimeter controls, moving us closer to a highly secure Zero Trust framework. This model of assuming every digital transaction is malicious, is something organisations want to carry through, yet in reality the majority are in their infancy when it comes to adoption at 21% according to this [poll](https://venturebeat.com/2022/02/15/report-only-21-of-enterprises-have-adopted-zero-trust-architecture/) from Optiv Security. 
 
-**mTLS** does offer a way for us to limit our 'blast-radius' and constrain the impact of a live security flaw as hackers would not be able to arbitrarily create certificates without being observed whilst traversing the network.
+**mTLS** does offer a way for us to limit our 'blast-radius' and constrain the impact of a live vulnerability as hackers aren't able to arbitrarily create certificates without being observed whilst traversing the network.
 
 ### What is mTLS?
 
 When one visits a browser with HTTPS prefixed to the URL, the browser will attempt to validate the server's certificate to make sure they are who they really say they are. 
 
-mTLS upholds this zero-trust paradigm, extending typical service-side SSL by _also_ requiring the client to present its certificates for validation as part of the TLS handshake. 
+mTLS upholds this Zero Trust paradigm, extending typical service-side SSL by _also_ requiring the client to present its certificates for validation as part of the TLS handshake. 
 
 ## About the example
 
-For those that are familiar with Service Mesh mTLS capabilities, I bet in most circumstances your exposure has been in the form of mTLS between microservices running **inside** the mesh. In this post we'll look at example of an external server communicating with an application running inside an OpenShift Service Mesh 2.x enabled namespace. This external server will act as a reverse proxy to facilitate the ingress routing to our mesh. 
+With respect to mTLS and Service Mesh, it's often referred to in the context of service-to-service interaction from _inside_ the mesh. In this post we'll look at example of an external server communicating with an application running inside an OpenShift Service Mesh 2.x. This external server will act as a reverse proxy to facilitate the ingress routing to our microservice. 
 
 _Why stand up a Layer 7 Load Balancer/Reverse Proxy externally when we can run a perfectly adequate ingress gateway at the mesh edge?_
 
-With this architecture, we're attempting to depict a common enterprise scenario with a GTM/LTM fronting various virtual and containerised applications and offloading protection measures such as DDoS mitigation and traffic filtering to a dedicated appliance. Additionally, we may be tailoring our solution for mutli-cluster and mutli-regional load balancing, the latter particularly relevant to the cloud. 
+With this architecture, we're attempting to depict a common enterprise scenario with a GTM/LTM fronting various virtual and containerised applications and offloading protection measures such as _DDoS mitigation_ and _traffic filtering_ to a dedicated appliance. Additionally, we may be tailoring our solution for mutli-cluster and mutli-regional load balancing, the latter particularly relevant to the cloud. 
 
-Moreover, security benchmarks such as the **Payment Card Industry - Data Security Standard** (PCI - DSS), declare inbound traffic is a strict _no-no_ for Internet to Cardholder Data Environment (CDE)communication. Bringing in an intermediate server or reverse proxy in the DMZ serves as one approach to address this compliance requirement.
+Moreover, security benchmarks such as the **Payment Card Industry - Data Security Standard** (PCI - DSS), declare inbound traffic is a strict _no-no_ for Internet to Cardholder Data Environment (CDE) communication. Bringing in an intermediate server or reverse proxy in the DMZ serves as one approach to address this compliance requirement.
 
 {{% notice info %}}
 **PCI-DSS 1.3.1:** _Implement a DMZ to limit inbound traffic to only system components that provide authorized publicly accessible services, protocols, and ports._
@@ -53,7 +53,7 @@ The example in this article represents are very stripped down, rudimentary setup
 
 ### Step 1: Installing Service Mesh 
 
-This post will focus less on spinning up OpenShift Service Mesh 2.x and more on the mTLS between client (the reverse proxy) and server (our sample `httpbin` application). The latter will be accessed via its own Ingress Gateway deployed on the mesh. 
+This post will focus less on spinning up OpenShift Service Mesh 2.x and more on the mTLS between client (the reverse proxy) and server (our sample `httpbin` application). The latter will be accessed via its own Ingress Gateway deployed in the mesh. 
 
 We can defer the installation method to the official [steps](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/installing-ossm.html#installing-ossm), but at a high level, standing up Red Hat OpenShift Service Mesh (RHOSSM) entails installing four Operators:
 
@@ -64,7 +64,7 @@ We can defer the installation method to the official [steps](https://docs.opensh
 
 ### Step 2: Bringing up the Service Mesh Control Plane
 
-With the Operators deployed, go ahead and install the control plane as per the documented [steps](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp), including deploying the **"basic"** `ServiceMeshControlPlane` (provided in the docs) to the `istio-system` namespace that we will create as a preliminary step.
+With the Operators deployed, go ahead and install the control plane as per the documented [steps](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-create-smcp.html#ossm-control-plane-deploy-cli_ossm-create-smcp), including deploying the **basic** `ServiceMeshControlPlane` (provided in the docs) to the `istio-system` namespace that we will create as a preliminary step.
 
 Let's create the namespace where our Istio control plane will live. 
 
@@ -108,7 +108,7 @@ $ oc new-project httpbin
 
 Next, either via the console or CLI we will deploy the **default** `ServiceMeshMemberRoll` object in the RHOSSM control plane namespace of `istio-system`.
 
-`ServiceMeshMemberRoll` is the resource we configure to permit namespaces entry to RHOSSM and be under the jurisdiction of the `ServiceMeshControlPlane`.
+Namespaces listed in the `ServiceMeshMemberRoll` resource are the applications and workflows that are managed by the `ServiceMeshControlPlane` resource.
 
 ```yaml
 $ cat <<EOF | oc apply -f -
@@ -123,7 +123,7 @@ spec:
 EOF
 ```
 
-We should see the status of the Member Roll as **CONFIGURED**.
+We should see the status of the Member Roll as `Configured`.
 
 ```yaml
 $  oc get smmr -n istio-system default
@@ -136,7 +136,7 @@ default   1/1     Configured   10s
 This sample application runs a single-replica `httpbin` as an Istio service taken from this example [documentation](https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to the injection of the Envoy proxy sidecar by configuring the annotation `sidecar.istio.io/inject=true`. The Envoy proxy is the Istio component responsible for brokering the in- and outbound communication to the workload (pod) it is tied to. More information can be found here on all the pieces of the puzzle that is [Service Mesh architecture](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html).
 
 {{% notice warning %}}
-To make this pod run in OpenShift, we need to allow it to use the `anyuid` Security Context Constraints (SCC) which we'll bind to the `default` service account of the `httpbin` namespace
+To make this pod run in OpenShift, we need to allow it to use the `anyuid` Security Context Constraints (SCC) which we'll bind to the `default` service account of the `httpbin` namespace. This should not be considered general practice and assignment of SCCs should be considered on a per-application basis. 
 {{% /notice %}}
 
 ```yaml
@@ -182,7 +182,7 @@ If we observe a green tick under Health and no <img style='display:inline;' src=
 
 At this point, our application should be active and registered as an application in the mesh. Next we'll use `openssl` to generate our certificates and keys. For the context of this demo, we'll resort to creating our own CA and create a self-signed certificate for our company Example Corp. 
 
-First let's create of **Root CA** and **Private Key**.
+First let's create our **Root CA** and **Private Key**.
 
 
 ```yaml
@@ -199,7 +199,7 @@ openssl req -out /var/tmp/certs/httpbin.example.com.csr -newkey rsa:2048 -nodes 
 openssl x509 -req -sha256 -days 365 -CA /var/tmp/certs/rootCACert.pem -CAkey /var/tmp/private/rootCAKey.pem -set_serial 0 -in /var/tmp/certs/httpbin.example.com.csr -out /var/tmp/certs/httpbin.example.com.crt
 ```
 
-Finally, we'll store this in OpenShift Secret to later refer to in our Gateway deployment.
+Finally, we'll store this in an OpenShift Secret to later refer to in our Gateway deployment.
 
 ```yaml
 $ oc create secret generic httpbin-credential --from-file=tls.crt=/var/tmp/certs/httpbin.example.com.crt --from-file=tls.key=/var/tmp/private/httpbin.example.com.key --from-file=ca.crt=/var/tmp/certs/rootCACert.pem -n istio-system
@@ -247,7 +247,7 @@ NAME                               HOST/PORT                            PATH   S
 httpbin-httpbin-dcfcfc0729048e03   httpbin.apps.cluster-sandbox-1.com          istio-ingressgateway   https   passthrough   None
 ```
 
-From here, we'll create our `VirtualService` which you can see embeds specific paths to route to the backend service. 
+From here, we'll create our `VirtualService` which you can see embeds certain paths to route to the backend service. 
 
 ```yaml
 $ cat <<EOF | oc apply -f -
@@ -275,7 +275,7 @@ spec:
 EOF
 ```
 
-Let's validate its deployment.
+Let's validate its deployment:
 
 ```yaml
 $ oc get virtualservice -n httpbin
@@ -283,7 +283,7 @@ NAME      GATEWAYS      HOSTS                                    AGE
 httpbin   ["httpbin"]   ["httpbin.apps.cluster-sandbox-1.com"]   20s
 ```
 
-Performing the `curl` to simulate as if we were just any old client with the **Root CA** in possession, we are met with a `certificate required` error which is to be expected.
+Performing the `curl` to simulate as if we were just any old client in possession of the **Root CA**, we are met with a `certificate required` error which is to be expected.
 
 ```yaml
 $ curl  --cacert /var/tmp/certs/rootCACert.pem https://httpbin.apps.cluster-sandbox-1.com/status/418 -I
@@ -359,7 +359,7 @@ With that success, we're now good to transpose these certificates and keys over 
 
 ### Step 8: Deploying our NGINX Reverse Proxy
 
-It's time now to deploy our reverse proxy that acts an intermediary server between our client and `httpbin` backend residing in the Service Mesh.
+It's time now to deploy our reverse proxy that will act as an intermediary server between our client and `httpbin` backend residing in the Service Mesh.
 
 This example will run NGINX on a bastion server and depending on your running operating system, the installation method could vary. For RHEL 8, it's as simple as:
 
@@ -367,7 +367,7 @@ This example will run NGINX on a bastion server and depending on your running op
 $ sudo yum install nginx -y
 ```
 
-We'll copy over all our created certificates and keys to more friendly directories for NGINX:
+We'll copy over all our created certificates and keys to _more friendly_ directories for NGINX:
 
 ```yaml
 sudo mkdir -p /etc/nginx/ssl/{certs,private} && \ 
@@ -376,12 +376,12 @@ sudo cp /var/tmp/private/* /etc/nginx/ssl/private
 ```
 
 {{% notice warning %}}
-For the purposes of this demo we've hijacked port 80 from the  default `/etc/nginx/nginx.conf` configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
+For the purposes of this demo we've hijacked port 80 from the default `/etc/nginx/nginx.conf` configuration. So left unchanged you will run into conflict issues when you attempt to restart the `nginx` service.
 {{% /notice %}}
 
 Below is the complete excerpt of our reverse proxy config. Basically, we're setting NGINX up to listen for all traffic on port 80 and 443. The former we want to rewrite to the latter which will be expressed via a 301 return code. 
 
-The `proxy_pass` command directs all traffic on 443 to our **httpbin** Ingress Gateway on the edge of the mesh with the appropriate client certs that we validated in the previous `curl`.
+The `proxy_pass` command directs all traffic on 443 to our `httpbin` Ingress Gateway on the edge of the mesh with the appropriate client certs that we validated in the previous `curl`.
 
 ```yaml
 $ sudo cat <<EOF > /etc/nginx/conf.d/proxy.conf 
@@ -423,9 +423,9 @@ server {
 EOF
 ```
 
-We've included the `example.com.crt` and `example.com.key` as both the client **AND** server certificate/key pair in this instance. This certificate is presented, when asked, to connections attempting to contact the reverse proxy server _in addition_ to representing the SSL certificate that will be present to the backend server; identified by `proxy_pass` which is our exposed `httpbin` application from the mesh.  
+We've included the `example.com.crt` and `example.com.key` as both the client **AND** server certificate/key pair in this instance. This certificate is presented, when asked, to connections attempting to contact the reverse proxy server _in addition_ to representing the SSL certificate that will be presented to the backend server; identified by `proxy_pass` which is our exposed `httpbin` application from the mesh.  
 
-`ssl_client_certificates` is a switch that enables/disables the reverse proxy server's certificate authentication behavior. Here we've set it to `optional`. It really depends on how you are serving your application, but given ours pertains to a simple HTTP Request & Response Service (`httpbin`) - a `curl` command or browser will be our front door. Authenticating for client certificates in this context may perhaps be easier to manage in an internal corporate environment where you could have more or more trusted root certificates, concatenated into a single file. Outside this though, the overhead of managing an accepted list of CAs through various vendors' trust programs, would be burdensome - to put it lightly. 
+`ssl_client_certificates` is a switch that enables/disables the reverse proxy server's certificate authentication behavior. Here we've set it to `optional`. It really depends on how you are serving your application, but given ours pertains to a simple HTTP Request & Response Service (`httpbin`) - a `curl` command or browser will be our front door. Authenticating for client certificates in this context may perhaps be easier to manage in an internal corporate environment where you could have more or more trusted root certificates, concatenated into a single file. Outside this though, the overhead of managing an accepted list of CAs through various vendors' trust programs could prove burdensome.
 
 ### Step 9: Testing our `httpbin` endpoint with mTLS enabled
 
@@ -460,6 +460,6 @@ $ curl --cacert /var/tmp/certs/rootCACert.pem  https://httpbin.frontend.example.
 
 This was just a fun dabble demonstrating mTLS communication from outside Istio. Certainly there's benefit in drawing from _some_ of the security architecture in here that could be implemented in a scale-out enterprise environment - it's a balance of _risks_ and _needs_; and **where** and **how** we terminate SSL is certainly one of those considerations. 
 
-It should be noted that as of OpenShift 4.9, mTLS authentication can be enabled in the Ingress Controller, so there are other, arguably simpler ways if we want _just_ want to cherry-pick certain security features that were only previously on Istio's bumper sticker (at least in the OpenShift space :smile:).
+It should be noted that as of OpenShift 4.9, mTLS authentication can be enabled in the Ingress Controller, so there are other, arguably simpler ways if we want _just_ want to cherry-pick certain security features that were only previously on Istio's bumper sticker, at least in the OpenShift space :smile:
 
 I hope you got some value from the above walkthrough and most importantly, hopefully forwards any discussions you might be having in your team on how you treat your Kubernetes/Service Mesh SSL. 

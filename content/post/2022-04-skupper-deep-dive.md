@@ -138,7 +138,7 @@ Link link1 is active
 
 Now with our multi-cluster Skupper network in place, it's time to spin up the front and back-end services that will comprise our microservice using the YAML definitions as is from the documentation link above. 
 
-As a side note, we'll need to implement some _'tweaks'_ to allow these _privileged_ workloads to run on our OpenShift clusters:
+As a side note, we'll need to implement some 'tweaks' to allow these _privileged_ workloads to run on our OpenShift clusters:
 
 {{% notice info %}}
 **1.** Allow the `default` Service Accounts in _both_ namespaces to use the privileged port of **80** via `oc adm policy add-scc-to-user anyuid -z default`

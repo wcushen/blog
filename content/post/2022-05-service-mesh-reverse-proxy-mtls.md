@@ -35,7 +35,7 @@ mTLS upholds this Zero Trust paradigm, extending typical service-side SSL by _al
 
 ## About the example
 
-With respect to mTLS and Service Mesh, it's often referred to in the context of service-to-service interaction from _inside_ the mesh. In this post we'll look at example of an external server communicating with an application running inside an OpenShift Service Mesh 2.x. This external server will act as a reverse proxy to facilitate the ingress routing to our microservice. 
+With respect to mTLS and Service Mesh, it's often referred to in the context of service-to-service interaction from _inside_ the mesh. In this post we'll look at example of an _external_ server communicating with an application running inside an OpenShift Service Mesh 2.x. This external server will act as a reverse proxy to facilitate the ingress routing to our microservice. 
 
 _Why stand up a Layer 7 Load Balancer/Reverse Proxy externally when we can run a perfectly adequate ingress gateway at the mesh edge?_
 
@@ -136,7 +136,7 @@ default   1/1     Configured   10s
 This sample application runs a single-replica `httpbin` as an Istio service taken from this example [documentation](https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/). When deploying an application, you must opt-in to the injection of the Envoy proxy sidecar by configuring the annotation `sidecar.istio.io/inject=true`. The Envoy proxy is the Istio component responsible for brokering the in- and outbound communication to the workload (pod) it is tied to. More information can be found here on all the pieces of the puzzle that is [Service Mesh architecture](https://docs.openshift.com/container-platform/4.10/service_mesh/v2x/ossm-architecture.html).
 
 {{% notice warning %}}
-To make this pod run in OpenShift, we need to allow it to use the `anyuid` Security Context Constraints (SCC) which we'll bind to the `default` service account of the `httpbin` namespace. This should not be considered general practice and assignment of SCCs should be considered on a per-application basis. 
+To make this pod run in OpenShift, we need to allow it to use the `anyuid` Security Context Constraints (SCC) which we'll bind to the `default` service account of the `httpbin` namespace. This should not be considered general practice and assignment of SCCs should be assessed on a per-application basis. 
 {{% /notice %}}
 
 ```yaml
@@ -172,7 +172,7 @@ Go to **Workloads**, and view our deployed application under the namespace `http
 
 {{< rawhtml >}}
 <p>
-If we observe a green tick under Health and no <img style='display:inline;' src='/img/2022-05-service-mesh-reverse-proxy-mtls/missing-sidecar.png'/>warning in Details then we're all clear from a sidecar perspective.
+If we observe no <img style='display:inline;' src='/img/2022-05-service-mesh-reverse-proxy-mtls/missing-sidecar.png'/>warning then we're all clear from a sidecar perspective.
 </p>
 {{< /rawhtml >}}
 

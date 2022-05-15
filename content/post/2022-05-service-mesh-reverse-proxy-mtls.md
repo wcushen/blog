@@ -123,7 +123,7 @@ spec:
 EOF
 ```
 
-We should see the status of the Member Roll as `Configured`.
+Now, we should see the status of the Member Roll as `Configured`.
 
 ```yaml
 $  oc get smmr -n istio-system default

@@ -29,7 +29,7 @@ This presesents a number of issues, all of which lead to a overall low-tuilizati
 
 By introducing a new scheudling mechanicsm, we'd be effictvely solving the inefficienciy of Kubernetes' standard scheudling and really should be at the top of any amdinsitrator's list when we consider any cost otpimzation/recovery activities on the platform. 
 
-### Secondary Scheduler Operator
+## Secondary Scheduler Operator
 
 OpenShift allow us to customize how worklaods are scheduling via the Seconadry Scheudler Operator. Through this BYO Schduler paradigm, we can leverage Secondary Scheduler Operator to manage the workloads of our choice yet the control plane components would still use the default scheduler shipped with OpenShift.
 
@@ -90,7 +90,7 @@ Obsevring the piecefunction function as a plot captured from the plugin's [READM
 
 ![](/img/2022-08-secondary-scheduler/trimaran-graph.png)
 
-### Install the Operator
+### Installing the Operator and Trimaran Scheduler
 
 Hopefully by now, we have enough insight into the mechanics of our chosen prfile and we can now go ahead and isntall the Secondary Operator on our OpenShift cluster and see this load aware scheduling in action. 
 
@@ -131,7 +131,7 @@ profiles:
           metricProvider:
             type: Prometheus
             address: ${PROM_URL}
-            Token: ${PROM_TOKEN}
+            token: ${PROM_TOKEN}
 EOF
 ```
 
@@ -164,8 +164,13 @@ metadata:
 spec:
   managementState: Managed
   schedulerConfig: secondary-scheduler-config
+  schedulerImage: k8s.gcr.io/scheduler-plugins/kube-scheduler:v0.22.6
 EOF
 ```
+
+6. Before we create a workload that is tagrted by our secondarys cheudler, let us observe the load on the worker node with respect to the Prometheus metric that the TargetLoadPacking plugin employs (node5_load)
+
+We can see that... so we should assume that our single-reploica pod shoudl go to the worker node 1 
 
 6. Let's create a Pod (in the `openshift-secondary-scheduler-operator` namespace is fine) that desginates our secondary scheduler for allocation.
 
@@ -185,12 +190,12 @@ spec:
 EOF
 ```
 
+8. We can check the secondary-scheduler-* pod logs in the openshift-secondary-scheduler-namespace to verify that the pod was scheduled by the secondary scheduler
 
 
-## Wrap Up
 
-This was just a fun dabble demonstrating mTLS communication from outside Istio. Certainly there's benefit in drawing from _some_ of the security architecture in here that could be implemented in a scale-out enterprise environment - it's a balance of _risks_ and _needs_; and **where** and **how** we terminate SSL is certainly one of those considerations. 
+## Summary
 
-It should be noted that as of OpenShift 4.9, mTLS authentication can be enabled in the Ingress Controller, so there are other, arguably simpler ways if we want _just_ want to cherry-pick certain security features that were only previously on Istio's bumper sticker, at least in the OpenShift space :smile:
+Unfortunately the pain of a forever-increasing cluster is one felt by many customers I intepr. At its core, the default scheudler shipped with Kubernets assumes not only that everyone will be a good lgobal citizen and accruately esttimate the footpring of their workload and to make atter worse, overcommitment of resources is actually rewarded if we consider two applications scheuled on the same node, the larger provisoned worklaod will win out when the node gets 'busy'. 
 
-I hope you got some value from the above walkthrough and most importantly, hopefully forwards any discussions you might be having in your team on how you treat your Kubernetes/Service Mesh SSL. 
+The net reuslt of all this is an extremely low utilization of computing resources most of the time, and a huge amount of machine costs. The latter can really be quantified and I think for most they'd be horrified to reosurace wastage as a dollar value. So as I cited in the intro, if your Kuberntes cluster expsnes and overhead are riaisng eyeborws in your organisaiton, trailling and expermineinrtg with a secondary scheudelr could be the best thing you'll ever do for your balacne sheet. 

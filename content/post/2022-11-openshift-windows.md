@@ -40,8 +40,11 @@ Fundamentally, Windows Server still maintains a considerable footprint amongst o
 
 Given _.NET Framework 4.7.2 and above_ are supported on Windows Server 2019 (_the minimum OS version compatible for OpenShift workloads_), we can follow the below decision tree to gauge if a path of **porting** or **direct containerization** should be taken for applications traditionally developed on Windows. 
 
-![**_Source:_** [Red Hat](https://cloud.redhat.com/blog/strategies-for-moving-.net-workloads-to-openshift-container-platform)](/img/2022-11-openshift-windows/dot-net-decision-tree.png)
-<center> **_Source:_** [Red Hat](https://cloud.redhat.com/blog/strategies-for-moving-.net-workloads-to-openshift-container-platform)</center>
+![](/img/2022-11-openshift-windows/dot-net-decision-tree.png)
+
+{{< rawhtml >}}
+<p style="text-align: center;">Source:<a href="https://cloud.redhat.com/blog/strategies-for-moving-.net-workloads-to-openshift-container-platform"> Red Hat</a></p>
+{{< /rawhtml >}}
 
 Ultimately, the aforementioned patterns all tie in to blueprints popularized by Amazon Web Services' ['6 Rs' strategy](https://aws.amazon.com/blogs/enterprise-strategy/6-strategies-for-migrating-applications-to-the-cloud/) that has been around for some time now, and so too align with Red Hat's overall vision of adopting an [open hybrid cloud](https://www.redhat.com/en/topics/cloud/open-hybrid-cloud-approach).
 
@@ -60,8 +63,11 @@ We have a choice of either giving the OpenShift control plane the reigns to spin
 
 The WMCO will perform all the necessary steps to configure the virtual machine so it can join the OpenShift cluster.
 
-{{< figure src="/img/2022-11-openshift-windows/wmco.png" link="/img/2022-11-openshift-windows/wmco.png" >}} {{< load-photoswipe >}}
-<center>ztunnel 四层处理完整流程</center>
+![](/img/2022-11-openshift-windows/wmco.png)
+
+{{< rawhtml >}}
+<p style="text-align: center;">Source:<a href="https://access.redhat.com/documentation/enus/openshift_container_platform/4.10/html/windows_container_support_for_openshift/understanding-windows-container-workloads"> Red Hat</a></p>
+{{< /rawhtml >}}
 
 {{% notice info %}}
 The Windows Machine Config Operator (WMCO) is **NOT** responsible for updating the operating systems of the Windows machine. The image upon creation is provided by the cluster administrator, and thereafter the machine's OS upgrade and application of any Windows CVE/security patches are firmly the responsibility of the administrator as well. 
@@ -113,7 +119,7 @@ PS C:\Users\Administrator> systeminfo | Select-String "OS Name"
 OS Name:                   Microsoft Windows Server 2022 Datacenter
 ```
 
-Now, I can grab ready made Deployment and Service for my Windows web server although with one minor change. I will update the image tag to reflect the 2022 Core image. 
+Now, I can grab a ready made Deployment and Service for my Windows web server although with one minor change. I will update the image tag to reflect the 2022 Core image. 
 
 ```yaml
 $ wget -O - https://gist.githubusercontent.com/suhanime/683ee7b5a2f55c11e3a26a4223170582/raw/d893db98944bf615fccfe73e6e4fb19549a362a5/WinWebServer.yaml | sed -e 's/ltsc2019/ltsc2022/g' | oc apply -f -

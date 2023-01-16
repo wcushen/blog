@@ -15,7 +15,7 @@ enableInlineShortcodes = true
 home = ["HTML", "RSS", "Algolia"]
 
 [params]
-  header_image = "img/portsea-back.jpg"
+  header_image = "img/portsea-back.png"
   SEOTitle = "Blog by Will Cushen"
   description = "Will Cushen, Red Hatter, A doer of DevOps things"
   keyword = "wcushen, Will Cushen, will cushen, Istio, Kubernetes, OpenShift, Microservice"

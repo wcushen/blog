@@ -1,9 +1,9 @@
 ---
 layout:     post
-title:      "BYO Scheduler for greater Kubernetes Scheduling efficiency"
+title:      "Secondary Scheduling on OpenShift"
 subtitle:   ""
 description: "BYO Scheduler for greater Kubernetes Scheduling efficiency"
-excerpt: "Secondary Scheduler for OpenShift"
+excerpt: "Running Kube applications with a customized scheduler to maximise cluster efficiency."
 date:       2022-08-10
 author:         "Will Cushen"
 image: "/img/2022-08-secondary-scheduler/mso-conductor.jpeg"

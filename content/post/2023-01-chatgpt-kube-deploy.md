@@ -2,8 +2,8 @@
 layout:     post
 title:      "ChatGPT, the Kube Administrator"
 subtitle:   ""
-description: "ChatGPT, the Kube Administrator"
-excerpt: "Secondary Scheduler for OpenShift"
+description: "Trialing AI's new kid on the block on all things Kube"
+excerpt: "Q&A with the new frontier of natural language processing, ChatGPT, to divulge its Kubernetes knowhow"
 date:       2023-01-07
 author:         "Will Cushen"
 image: "/img/2023-01-chatgpt-kube-deploy/chatgpt.jpeg"

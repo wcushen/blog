@@ -2,8 +2,8 @@
 layout:     post
 title:      "Shipping Windows Containers to OpenShift"
 subtitle:   ""
-description: "Shipping Windows Containers to OpenShift"
-excerpt: "Secondary Scheduler for OpenShift"
+description: "Composing our clusters to run Windows containerized workloads alongside traditional Linux-based containers"
+excerpt: "Windows and Linux-based applications can then be managed side-by-side in a single container orchestration platform"
 date:       2022-11-26
 author:         "Will Cushen"
 image: "/img/2022-11-openshift-windows/MSC-Vessel.jpeg"

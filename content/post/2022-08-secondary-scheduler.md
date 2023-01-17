@@ -6,7 +6,7 @@ description: "BYO Scheduler for greater Kubernetes Scheduling efficiency"
 excerpt: "Running Kube applications with a customized scheduler to maximise cluster efficiency."
 date:       2022-08-10
 author:         "Will Cushen"
-image: "/img/2022-08-secondary-scheduler/mso-conductor.jpeg"
+image: "/img/2022-08-secondary-scheduler/orchestra.jpeg"
 published: true
 tags:
     - Kubernetes
@@ -17,35 +17,33 @@ URL: "/2022-08-secondary-scheduler"
 
 ## Kubernetes Default Scheduling
 
-The orchestration capabilities of Kubernetes when it graced the enterprise back in 2014 were truly remarkable. The ability to assign Pods to Nodes in Kubernetes allows users of the platform to consistently satisfy various levels of Quality of Service (QoS).
+The orchestration capabilities of Kubernetes when it graced the enterprise back in 2014 were truly remarkable for the evolution of distributed systems. The early days of Google's Omega and Borg projects spawned this concept of task **scheduling** (to _cells_) that offers users various levels of Quality of Service (QoS) to fulfil service level objectives (SLOs).
 
-A pod's Request value assigned to the workload by the developer is ultimately what gets fed into the default scheduler's two step operation of _filtering and scoring_. 
+These concepts formed the base of the lasting successor to those projects, Kubernetes, where a pod's Request value assigned to the workload by the developer is ultimately what gets fed into the default scheduler's two step operation of _filtering and scoring_. 
 
-This presents a number of issues, all of which lead to a overall low-utilization of the cluster:
+This designation from the user to a Kubernetes cluster however, presents a number of issues, all of which lead to a overall **low-utilization** of the cluster:
 
-- It's difficult (particular in beta releases) to ascertain an accurate resource usage for any given application, and thus any app owner is more likely ot be conservative is his or her estimate 
-- Considering all the 3 QoS Classes available: **Guaranteed, Burstable and Best-Effort** - in a mission critical Production environment, the tendency for Developers is almost always to assign a QoS of Guaranteed (i.e. Request = Limits) and therefore it introduces this mentality of of 'high-balling' the Request
-- Default scheduling out-of-the-box doesn't consider any live (Prometheus) data to determine a node's real time node utilization 
+- It's difficult (particular in beta releases) to ascertain an accurate resource usage for any given application, and thus any app owner is more likely to be conservative in their estimate 
+- Considering all the _3 QoS Classes_ available: **_Guaranteed, Burstable and Best-Effort_** - in a mission-critical Production environment, the tendency for developers is almost always to assign a QoS of Guaranteed (i.e. Request = Limits), promoting this mentality of 'high-balling' the Request
+- Default scheduling out-of-the-box doesn't consider any live (Prometheus) data to determine a node's real time node utilization (or any other scraped metrics that could be fed as input)
 
-By introducing a new scheduling mechanism, we're looking to rectify the inefficiency of Kubernetes' standard scheduling. It's a noteworthy cause and really should be at the top of any administrator's list when we consider any cost optimization/recovery activities on the platform. 
+By introducing a new scheduling mechanism, we're looking to rectify the inefficiency of Kubernetes' standard scheduling. It's a worthy cause and really should be at the top of any administrator's list when we consider any cost optimization/recovery activities across our platforms. 
 
 ## Secondary Scheduler Operator
 
-OpenShift allow us to customize how workloads are scheduling via the Secondary Scheduler Operator. Through this BYO Scheduler paradigm, we can leverage Secondary Scheduler Operator to manage the workloads of our choice yet the control plane components would still use the default scheduler shipped with OpenShift.
-
-A Pod or Deployment must _opt-in_ (via a selector) to be scheduler by an alternative scheduler to the default provided by OpenShift. 
+OpenShift allows us to customize how workloads are scheduled via the Secondary Scheduler Operator. Through this BYO Scheduler paradigm, we can leverage a secondary scheduler to manage the workloads of our choice, whilst the control plane components would remain untouched and continue to use the default scheduler shipped with OpenShift.
 
 We have a host of alternative [scheduler plugins](https://github.com/kubernetes-sigs/scheduler-plugins) at our disposal base on the [scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/).
 
-Keeping in mind the problem statement above of nodes being under-utilized, it'd be wise of us to employ a scheduler plugin that seeks to pack nodes more efficiently. Certainly there are pitfalls to _just_ considering **CPU Utilization** of the node outlined in this Red Hat blog [here](https://cloud.redhat.com/blog/improving-the-resource-efficiency-for-openshift-clusters-via-trimaran-schedulers), but as an introduction to secondary scheduling let us take the basic goal of maintaining node utilization at a certain level and consider the Trimaran scheduler.
+Keeping in mind the problem statement above of nodes being _under-utilized_, it'd be wise of us to employ a scheduler plugin that seeks to pack nodes **more efficiently**. Certainly there are pitfalls to _just_ considering **CPU Utilization** of the node outlined in this Red Hat blog [here](https://cloud.redhat.com/blog/improving-the-resource-efficiency-for-openshift-clusters-via-trimaran-schedulers), but as an introduction to secondary scheduling let us take the basic goal of maintaining node utilization at a certain level and consider the Trimaran plugin.
 
-Of the two scheduler strategies under Trimaran, `TargetLoadPacking` and `LoadVariationRiskBalancing` - the plugin uses a [load watcher](https://github.com/paypal/load-watcher) that retrieves five-minute history metrics (from metric providers like Prometheus) every minute and caches the analysis results and feeding those inputs into the Trimaran scheduling algorithm, all in all allowing us to bridge this gap between the allocated resources (requests) to what's really happening on the node (real-time utilization).
+Of the two scheduler strategies under Trimaran, `TargetLoadPacking` and `LoadVariationRiskBalancing` - the plugin uses a [load watcher](https://github.com/paypal/load-watcher) that retrieves five-minute history metrics (from metric providers like Prometheus) and caches the analysis results and feeding those inputs into the Trimaran scheduling algorithm, all in all allowing us to bridge this gap between the allocated resources (**requests**) to what's really happening on the node (**real-time utilization**).
 
 ### `TargetLoadPacking` Plugin
 
-Let's take a look under the hood of the plugin's algorithm and end result of a scheduled pod.
+Let's take a look under the hood of the plugin's algorithm and the end result of a scheduled pod.
 
-Suppose we have the following output that indicates the current CPU utilization. Memory here has been redacted to simplify the demonstration. 
+Suppose we have the following output that indicates the current CPU utilization. Memory here has been omitted to simplify the demonstration. 
 
 ```yaml
 $ oc adm top node -l node-role.kubernetes.io/worker=""
@@ -55,9 +53,9 @@ worker-2   4000m         50%
 worker-3   800m          10%    
 ```
 
-Here we have three worker nodes,, with 8 cores each and utilization at 2, 4 and 0.8 cores, respectively (together with the value expressed as a %)
+Here we have three worker nodes, with 8 cores each and utilization at 2, 4 and 0.8 cores, respectively (together with the value expressed as a %)
 
-#### Algorithm
+#### Plugin Algorithm
 
 1. Determine the utilization of the current node. We'll call this **'A'**.
 2. Calculate the current pod's total CPU requests and overhead. We'll call this **'B'**.
@@ -86,13 +84,13 @@ worker-2 → 40 * (100 - 50)/(100 - 40) = 33.3
 worker-3 → (100 - 40)*10/40 + 40 = 55
 ```
 
-Observing the piecewise function as a plot captured from the plugin's [README](https://github.com/kubernetes-sigs/scheduler-plugins/blob/master/kep/61-Trimaran-real-load-aware-scheduling/README.md#targetloadpacking-plugin), we can see that the nodes are favored and penalized linearly as they approach and surpass the target utilization, respectively (in this case of this README, 50%).
+Observing the piecewise function as a plot captured from the plugin's [README](https://github.com/kubernetes-sigs/scheduler-plugins/blob/master/kep/61-Trimaran-real-load-aware-scheduling/README.md#targetloadpacking-plugin), we can see that the nodes are favored and penalized linearly as they **reach** and **surpass** the target utilization, _respectively_ (in this README, target utilization is set to 50%).
 
 ![](/img/2022-08-secondary-scheduler/trimaran-graph.png)
 
 ### Secondary Scheduler in action
 
-Hopefully by now, we have enough insight into the mechanics of our chosen profile and we can now go ahead and install the Secondary Operator on our OpenShift cluster and see this load aware scheduling in action. 
+Hopefully by now, we have enough insight into the mechanics of our chosen profile and we can now go ahead and install the Secondary Operator on our OpenShift cluster and see this load-aware scheduling in action. 
 
 #### Step 1: Create the namespace and install from Operator Hub
 
@@ -104,7 +102,7 @@ $ oc create ns openshift-secondary-scheduler-operator
 
 #### Step 2: Install from Operator Hub
 
-Proceed to the console's sidebar, **Operators -> OperatorHub**, search for Secondary Scheduler Operator and install the operator
+Proceed to the console's sidebar, **Operators -> OperatorHub**, search for Secondary Scheduler Operator and install the operator.
 
 ![](/img/2022-08-secondary-scheduler/secondary-scheduler-operator-hub.png)
 
@@ -142,10 +140,10 @@ EOF
 ```
 
 {{% notice info %}}
-For descriptions of the `TargetLoadPacking` arguments refer to this [README](https://pkg.go.dev/sigs.k8s.io/scheduler-plugins/pkg/trimaran/targetloadpacking#section-readme)
+For descriptions of the `TargetLoadPacking` plugin arguments refer to this [README](https://pkg.go.dev/sigs.k8s.io/scheduler-plugins/pkg/trimaran/targetloadpacking#section-readme)
 {{% /notice %}}
 
-Export to shell, a series of Prometheus specific variables required by the `ConfigMap`, before instantiating the ConfigMap
+Export to shell, a series of Prometheus specific variables required by the `ConfigMap`, before generating the ConfigMap
 
 ```yaml
 export PROM_HOST=`oc get routes prometheus-k8s -n openshift-monitoring -o json |jq ".status.ingress"|jq ".[0].host"|sed 's/"//g'` && \
@@ -160,7 +158,7 @@ $ oc create -n openshift-secondary-scheduler-operator configmap secondary-schedu
 
 #### Step 4: Deploy the Trimaran Scheduler
 
-And then from here, all we need to do is point the `schedulerConfig` to our secondary-scheduler-config (ConfigMap) upon creating our `SecondaryScheduler` CR (leaving defaults for the remainder). We can do this via the console or alternatively via the below:
+And then from here, all we need to do is point the `schedulerConfig` to our `secondary-scheduler-config` ConfigMap when creating our `SecondaryScheduler` CR (leaving defaults for the remainder). We can do this via the console or alternatively via the below:
 
 ```yaml
 $ cat <<EOF | oc apply -f -
@@ -178,11 +176,11 @@ EOF
 
 #### Step 5: Observe the current load
 
-Before we create a workload that is targeted by our secondary scheduler, let us observe the load on the worker node with respect to the Prometheus metric that the `TargetLoadPacking` plugin employs (node5_load). Trimaran plugins are actually using a library called `load-watcher`, which uses the following [metric endpoints](https://github.com/paypal/load-watcher/blob/329422106426c9fa4f797950ebc9d83617e4b191/pkg/watcher/internal/metricsprovider/prometheus.go#L50) for CPU.
+Before we create a workload that is targeted by our secondary scheduler, let us observe the load on the worker nodes with respect to the Prometheus metric that the `TargetLoadPacking` plugin employs. Trimaran plugins are actually using a library called `load-watcher`, which uses the following [metric endpoints](https://github.com/paypal/load-watcher/blob/329422106426c9fa4f797950ebc9d83617e4b191/pkg/watcher/internal/metricsprovider/prometheus.go#L50) for CPU.
 
 
 
-We can see that all are sitting below the target utilization of 40%, so with that knowledge we know that the scheduler is going to 'pack' those with the highest CPU utilization, _under the condition that they are below the target utilization_. Based on this in our case, we should assume that our single-replica pod should go to the worker node 2, i.e. the blue line. 
+We can see that all are sitting below the target utilization of 40%, so with that knowledge we know that the scheduler is going to 'pack' those with the highest CPU utilization, _under the condition that they are below the target utilization_. Based on this in our case, we should assume that our single-replica pod should go to the worker node 2, i.e. the light blue line. 
 
 ![](/img/2022-08-secondary-scheduler/prom_result.png)
 
@@ -214,8 +212,10 @@ $ oc describe pod custom-scheduler-example | grep Scheduled
   Normal  Scheduled       29s   secondary-scheduler  Successfully assigned openshift-secondary-scheduler-operator/custom-scheduler-example to worker-2
 ```
 
+Beautiful, as expected :tada:
+
 ## Summary
 
-Unfortunately the pain of a forever-increasing cluster is one felt by many customers I interface with (as well as myself!). At its core, the default scheduler shipped with Kubernetes assumes not only that everyone will be a good global citizen and accurately estimate the footprint of their workload. What's more, and to make matters worse, overcommitment of resources is actually rewarded if we consider two applications scheduled on the same node, the larger provisioned workload will win out when the node gets _'busy'_. 
+Unfortunately the pain of a forever-increasing cluster is one felt by many customers I interface with (as well as myself!). At its core, the default scheduler shipped with Kubernetes assumes that everyone will be a good global citizen and accurately estimate the footprint of their workload. What's more, and to make matters worse, overcommitment of resources is **actually rewarded** if we consider two applications scheduled on the same node, the larger provisioned workload will win out when the node gets _'busy'_. 
 
-The net result of all this is an extremely low utilization of computing resources most of the time, equating to a ballooning of infrastructure costs. The latter can really be quantified and I think for most they'd be horrified to be told of the resource wastage as a dollar value. So as I cited in the intro, if your Kubernetes cluster expenses and overhead are raising eyebrows in your organization, trialing and experimenting with a secondary scheduler could be the best thing you'll ever do for your balance sheet.
+The net result of all this is an extremely low utilization of computing resources most of the time, equating to a severe ballooning of infrastructure costs. The latter can really be quantified and I think for most they'd be horrified to be told of the resource wastage as a dollar value. So as I mentioned in the intro, if your Kubernetes cluster expenses and overhead are raising eyebrows in your organization, trialing and experimenting with a secondary scheduler could be the best thing you'll ever do for your balance sheet!

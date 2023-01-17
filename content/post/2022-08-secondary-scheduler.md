@@ -17,27 +17,27 @@ URL: "/2022-08-secondary-scheduler"
 
 ## Kubernetes Default Scheduling
 
-The orchestration capabilities of Kubernetes when it graced the enterprise back in 2014 were truly remarkable for the evolution of distributed systems. The early days of Google's Omega and Borg projects spawned this concept of task **scheduling** (to _cells_) that offers users various levels of Quality of Service (QoS) to fulfil service level objectives (SLOs).
+The orchestration capabilities of Kubernetes when it graced the enterprise back in 2014 were truly remarkable for the evolution of distributed systems. The early days of Google's Omega and Borg projects spawned this concept of task **scheduling** (to _cells_) that offered users various levels of Quality of Service (QoS) to fulfil service level objectives (SLOs).
 
-These concepts formed the base of the lasting successor to those projects, Kubernetes, where a pod's Request value assigned to the workload by the developer is ultimately what gets fed into the default scheduler's two step operation of _filtering and scoring_. 
+These concepts formed the base of the lasting successor to those projects, Kubernetes, where a pod's Request value assigned to the workload by the developer, is ultimately what gets fed into the default scheduler's two step operation of _filtering and scoring_. 
 
-This designation from the user to a Kubernetes cluster however, presents a number of issues, all of which lead to a overall **low-utilization** of the cluster:
+This designation from the user to a Kubernetes cluster however, presents a number of issues, all of which lead to an overall **low-utilization** of the cluster:
 
 - It's difficult (particular in beta releases) to ascertain an accurate resource usage for any given application, and thus any app owner is more likely to be conservative in their estimate 
 - Considering all the _3 QoS Classes_ available: **_Guaranteed, Burstable and Best-Effort_** - in a mission-critical Production environment, the tendency for developers is almost always to assign a QoS of Guaranteed (i.e. Request = Limits), promoting this mentality of 'high-balling' the Request
 - Default scheduling out-of-the-box doesn't consider any live (Prometheus) data to determine a node's real time node utilization (or any other scraped metrics that could be fed as input)
 
-By introducing a new scheduling mechanism, we're looking to rectify the inefficiency of Kubernetes' standard scheduling. It's a worthy cause and really should be at the top of any administrator's list when we consider any cost optimization/recovery activities across our platforms. 
+By introducing a new scheduling mechanism, we're looking to rectify the _inefficiency_ of Kubernetes' standard scheduling. It's a worthy cause and really should be at the top of any platform owner's list when we consider any cost optimization/recovery activities across our platforms. 
 
 ## Secondary Scheduler Operator
 
-OpenShift allows us to customize how workloads are scheduled via the Secondary Scheduler Operator. Through this BYO Scheduler paradigm, we can leverage a secondary scheduler to manage the workloads of our choice, whilst the control plane components would remain untouched and continue to use the default scheduler shipped with OpenShift.
+OpenShift allows us to customize how workloads are scheduled via the Secondary Scheduler Operator. Through this BYO Scheduler paradigm, we can leverage a secondary scheduler to manage the workloads of our choice, whilst leaving the control plane components untouched, continuing to use the default scheduler shipped with OpenShift.
 
-We have a host of alternative [scheduler plugins](https://github.com/kubernetes-sigs/scheduler-plugins) at our disposal base on the [scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/).
+We have a host of alternative [scheduler plugins](https://github.com/kubernetes-sigs/scheduler-plugins) at our disposal based on the [scheduler framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/).
 
 Keeping in mind the problem statement above of nodes being _under-utilized_, it'd be wise of us to employ a scheduler plugin that seeks to pack nodes **more efficiently**. Certainly there are pitfalls to _just_ considering **CPU Utilization** of the node outlined in this Red Hat blog [here](https://cloud.redhat.com/blog/improving-the-resource-efficiency-for-openshift-clusters-via-trimaran-schedulers), but as an introduction to secondary scheduling let us take the basic goal of maintaining node utilization at a certain level and consider the Trimaran plugin.
 
-Of the two scheduler strategies under Trimaran, `TargetLoadPacking` and `LoadVariationRiskBalancing` - the plugin uses a [load watcher](https://github.com/paypal/load-watcher) that retrieves five-minute history metrics (from metric providers like Prometheus) and caches the analysis results and feeding those inputs into the Trimaran scheduling algorithm, all in all allowing us to bridge this gap between the allocated resources (**requests**) to what's really happening on the node (**real-time utilization**).
+Of the two scheduler strategies under Trimaran, `TargetLoadPacking` and `LoadVariationRiskBalancing` - the plugin uses a [load watcher](https://github.com/paypal/load-watcher) that retrieves five-minute history metrics (from metric providers like Prometheus) and caches the results and feeds those inputs into the Trimaran scheduling algorithm, all in all allowing us to bridge this gap between the allocated resources (**requests**) to what's really happening on the node (**real-time utilization**).
 
 ### `TargetLoadPacking` Plugin
 

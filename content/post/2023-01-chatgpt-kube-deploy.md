@@ -7,6 +7,7 @@ excerpt: "Q&A with the new frontier of natural language processing, ChatGPT, let
 date:       2023-01-16
 author:         "Will Cushen"
 image: "/img/2023-01-chatgpt-kube-deploy/chatgpt.jpeg"
+thumbnail: "/img/2023-01-chatgpt-kube-deploy/chatgpt.jpeg"
 published: true
 tags:
     - Kubernetes
@@ -50,7 +51,6 @@ A couple of things to note here:
 {{% notice info %}}
 OpenShift Service Mesh is actually based on an opinionated distribution of Istio called **Maistra** and it differs to generic Istio by instead of injecting the required Envoy sidecar into all deployments within labeled projects, Maistra relies on presence of the `sidecar.istio.io/inject` annotation **AND** the project being listed in the `ServiceMeshMemberRoll`.
 {{% /notice %}}
-
 
 #### Deploying an Istio microservice - _according to ChatGPT_
 

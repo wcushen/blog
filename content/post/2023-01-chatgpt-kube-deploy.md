@@ -31,11 +31,11 @@ Conversely however, there's many out there that are taking a _glass half-full_ a
 
 Unsurprisingly, the advancement of ChatGPT is moving at a scary pace. At the time of writing, OpenAI supposedly is on the verge of (Q1 of 2023) releasing **GPT-4**. The rumour mill's been in overdrive, but reports are hinting at a bump up to [1 trillion](https://thechainsaw.com/business/chatgpt-4-vs-chatgpt-3-latest-development/) model-fed parameters. Mind-boggling. 
 
-### What does it know about Kube?
+### So what does it know about Kube?
 
 In this blog, I too am going to put ChatGPT to the test and see how much it can help (replace) me in my day gig managing Kubernetes clusters. 
 
-We'll throw it some _Kube 101_ queries and then go on to gauge if it can assist on more complex topics such as service mesh (Istio).
+We'll throw it some _Kube 101_ queries and then go onto gauge if it can assist on more complex topics such as service mesh (Istio).
 
 Watch the below video for the interrogation :smiling_imp:
 

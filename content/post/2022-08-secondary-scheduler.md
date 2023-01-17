@@ -215,10 +215,10 @@ $ oc describe pod custom-scheduler-example | grep Scheduled
   Normal  Scheduled       29s   secondary-scheduler  Successfully assigned openshift-secondary-scheduler-operator/custom-scheduler-example to worker-2
 ```
 
-Additionally, we have this output from the `secondary-scheduler-*` pod logs in the `openshift-secondary-scheduler-namespace`:
+Additionally, we have this output from the `secondary-scheduler-*` pod logs in the `openshift-secondary-scheduler-operator` namespace:
 
 ```yaml
-I0117 07:55:29.373575       1 scheduler.go:675] "Successfully bound pod to node" pod="default/custom-scheduler-example" node="worker-2" evaluatedNodes=6 feasibleNodes=3
+I0117 07:55:29.373575 1 scheduler.go:675] "Successfully bound pod to node" pod="default/custom-scheduler-example" node="worker-2" evaluatedNodes=6 feasibleNodes=3
 ```
 
 Beautiful, as expected :tada:

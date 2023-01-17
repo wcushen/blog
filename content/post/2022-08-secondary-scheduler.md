@@ -27,7 +27,7 @@ This designation from the user to a Kubernetes cluster however, presents a numbe
 - Considering all the _3 QoS Classes_ available: **_Guaranteed, Burstable and Best-Effort_** - in a mission-critical Production environment, the tendency for developers is almost always to assign a QoS of Guaranteed (i.e. Request = Limits), promoting this mentality of 'high-balling' the Request
 - Default scheduling out-of-the-box doesn't consider any live (Prometheus) data to determine a node's real time node utilization (or any other scraped metrics that could be fed as input)
 
-By introducing a new scheduling mechanism, we're looking to rectify the _inefficiency_ of Kubernetes' standard scheduling. It's a worthy cause and really should be at the top of any platform owner's list when we consider any cost optimization/recovery activities across our platforms. 
+By introducing a new scheduling mechanism, we're looking to rectify the _inefficiency_ of Kubernetes' standard scheduling. It's a worthy cause and really should be at the top of any platform owner's list when we consider any cost optimization/recovery activities across our clusters. 
 
 ## Secondary Scheduler Operator
 
@@ -140,7 +140,7 @@ EOF
 ```
 
 {{% notice info %}}
-For descriptions of the `TargetLoadPacking` plugin arguments refer to this [README](https://pkg.go.dev/sigs.k8s.io/scheduler-plugins/pkg/trimaran/targetloadpacking#section-readme)
+For descriptions of the `TargetLoadPacking` plugin arguments refer to this [README](https://pkg.go.dev/sigs.k8s.io/scheduler-plugins/pkg/trimaran/targetloadpacking#section-readme).
 {{% /notice %}}
 
 Export to shell, a series of Prometheus specific variables required by the `ConfigMap`, before generating the ConfigMap
@@ -178,7 +178,9 @@ EOF
 
 Before we create a workload that is targeted by our secondary scheduler, let us observe the load on the worker nodes with respect to the Prometheus metric that the `TargetLoadPacking` plugin employs. Trimaran plugins are actually using a library called `load-watcher`, which uses the following [metric endpoints](https://github.com/paypal/load-watcher/blob/329422106426c9fa4f797950ebc9d83617e4b191/pkg/watcher/internal/metricsprovider/prometheus.go#L50) for CPU.
 
-
+{{% notice info %}}
+It should be noted that the Prometheus recording rule for CPU used in the load watcher's code, `instance:node_cpu:ratio` is no longer available in OpenShift 4.10. This demo made use of a 4.9 cluster with a 4.10 Red Hat Operator index image to install the Secondary Scheduler Operator from Operator Hub. More details on how to do that [here](https://docs.openshift.com/container-platform/4.9/operators/admin/olm-managing-custom-catalogs.html#olm-creating-catalog-from-index_olm-managing-custom-catalogs).
+{{% /notice %}}
 
 We can see that all are sitting below the target utilization of 40%, so with that knowledge we know that the scheduler is going to 'pack' those with the highest CPU utilization, _under the condition that they are below the target utilization_. Based on this in our case, we should assume that our single-replica pod should go to the worker node 2, i.e. the light blue line. 
 
@@ -194,6 +196,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: custom-scheduler-example
+  namespace: default
   labels:
     name: custom-scheduler-example
 spec:
@@ -210,6 +213,12 @@ Now, we can run an `oc describe` and observe where the pod ended up.
 $ oc describe pod custom-scheduler-example | grep Scheduled
   PodScheduled      True
   Normal  Scheduled       29s   secondary-scheduler  Successfully assigned openshift-secondary-scheduler-operator/custom-scheduler-example to worker-2
+```
+
+Additionally, we have this output from the `secondary-scheduler-*` pod logs in the `openshift-secondary-scheduler-namespace`:
+
+```yaml
+I0117 07:55:29.373575       1 scheduler.go:675] "Successfully bound pod to node" pod="default/custom-scheduler-example" node="worker-2" evaluatedNodes=6 feasibleNodes=3
 ```
 
 Beautiful, as expected :tada:

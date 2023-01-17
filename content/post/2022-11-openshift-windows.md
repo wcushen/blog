@@ -24,7 +24,7 @@ Since 2016, Windows has supported three **modes of isolation**:
 
 - **Process Containers** - also known as Windows Server Containers (WSC)
 - **Hyper-V Containers** - containers are isolated via a lightweight virtual machine 
-- **HostProcess Containers** - new to Windows Server 2022 allowing containers to be created within the host's network namespace instead of their own. This mode is primed to manage Windows nodes in Kubernetes (although it won't be covered here in this article)
+- **HostProcess Containers** - new to Windows Server 2022, allowing containers to be created within the host's network namespace instead of their own. This mode is primed to manage Windows nodes in Kubernetes (although it won't be covered here in this article)
 
 There are plenty of other blogs out there that get into the weeds of Windows Containers, so the intention of this post is rather to show their operability on OpenShift. 
 
@@ -46,7 +46,7 @@ Given _.NET Framework 4.7.2 and above_ are supported on Windows Server 2019 (_th
 <p style="text-align: center;">Source:<a href="https://cloud.redhat.com/blog/strategies-for-moving-.net-workloads-to-openshift-container-platform"> Red Hat</a></p>
 {{< /rawhtml >}}
 
-Ultimately, the aforementioned patterns all tie in to blueprints popularized by Amazon Web Services' ['6 Rs' strategy](https://aws.amazon.com/blogs/enterprise-strategy/6-strategies-for-migrating-applications-to-the-cloud/) that has been around for some time now, and so too align with Red Hat's overall vision of adopting an [open hybrid cloud](https://www.redhat.com/en/topics/cloud/open-hybrid-cloud-approach).
+Ultimately, the aforementioned patterns all tie into blueprints popularized by Amazon Web Services' ['6 Rs' strategy](https://aws.amazon.com/blogs/enterprise-strategy/6-strategies-for-migrating-applications-to-the-cloud/) that has been around for some time now, and so too align with Red Hat's overall vision of adopting an [open hybrid cloud](https://www.redhat.com/en/topics/cloud/open-hybrid-cloud-approach).
 
 **The net benefit being here**:
 
@@ -57,9 +57,9 @@ Ultimately, the aforementioned patterns all tie in to blueprints popularized by 
 ### Windows Machine Config Operator (WMCO)
 
 
-The Windows Machine Config Operator (WMCO) is the pivotal feature that allows a cluster administrator to add a Windows worker node as a day 2 operation. 
+The Windows Machine Config Operator (WMCO) is the pivotal feature that allows a cluster administrator to add a Windows worker node as a day-2 operation. 
 
-We have a choice of either giving the OpenShift control plane the reigns to spin up a Windows machine via a `MachineSet` on any of the supported infrastructure platforms (vSphere, AWS or Azure at the time of writing) or alternatively, we can leverage the [Bring-Your-Own-Host](https://docs.openshift.com/container-platform/4.10/windows_containers/byoh-windows-instance.html) feature introduced in Openshift 4.8.
+We have a choice of either giving the OpenShift control plane the reigns to spin up a Windows machine via a `MachineSet` on any of the supported infrastructure platforms (vSphere, AWS or Azure at the time of writing) or alternatively, we can leverage the [Bring-Your-Own-Host](https://docs.openshift.com/container-platform/4.10/windows_containers/byoh-windows-instance.html) feature introduced in OpenShift 4.8.
 
 The WMCO will perform all the necessary steps to configure the virtual machine so it can join the OpenShift cluster.
 
@@ -70,12 +70,12 @@ The WMCO will perform all the necessary steps to configure the virtual machine s
 {{< /rawhtml >}}
 
 {{% notice info %}}
-The Windows Machine Config Operator (WMCO) is **NOT** responsible for updating the operating systems of the Windows machine. The image upon creation is provided by the cluster administrator, and thereafter the machine's OS upgrade and application of any Windows CVE/security patches are firmly the responsibility of the administrator as well. 
+The Windows Machine Config Operator (WMCO) is **NOT** responsible for updating the operating system of the Windows machine. The image upon creation is provided by the cluster administrator, and thereafter the machine's OS upgrade and application of any Windows CVE/security patches are firmly the responsibility of the administrator as well. 
 {{% /notice %}}
 
 ####  Deploying a Windows Web Application
 
-With a bit of theory out the way, we can now deploy a sample application running a webservice on the Windows Node. This application will be running inside a Windows Container on the Windows Node.
+With a bit of theory out the way, we'll now deploy a sample application running a webservice on the Windows Node. This application will be running inside a Windows Container on the Windows Node.
 
 The WMCO spins up a special ssh container for us to remote shell into and then from there we can run the provided script to drop us into a PowerShell prompt on the Windows host. 
 
@@ -101,13 +101,13 @@ a Windows version 10.0.20348-based image is incompatible with a 10.0.17763 host
 
 **FAIL!** As we covered earlier, this is expected and in theory could be circumnavigated by resorting to [Hyper-V isolation](https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-11), but we know the WMCO hasn't configured [our machine in this way](https://docs.openshift.com/container-platform/4.10/windows_containers/understanding-windows-container-workloads.html). 
 
-A bit of self-acknowledgement from Microsoft themselves stating that _"decoupling the User/Kernel boundary in Windows is a monumental task and highly non-trivial"_ and is something they're looking to improve in future releases of Windows Server and Client.
+We have a bit of self-acknowledgement from Microsoft themselves here too, stating that _"decoupling the User/Kernel boundary in Windows is a monumental task and highly non-trivial"_ and is something they're looking to improve in future releases of Windows Server and Client.
 
-Given that it's 2022, I'm eager for my infrastructure to remain relevant and up-to-date, so _what I can do_ is perform an in-place upgrade of my Windows Server OS to 2022 and that should make this container image I will try to ultimately use for my application, all happy and compliant.
+Given that it's 2022, I'm eager for my infrastructure to remain relevant and up-to-date, so _**what I can do**_ is perform an in-place upgrade of my Windows Server OS to 2022 and that should make this container image I will try to ultimately use for my application, all happy and compliant.
 
-This Windows node is one that I have rolled out as a Bring-Your-Own-Instance (BYOH) node as [explained here](https://docs.openshift.com/container-platform/4.10/windows_containers/byoh-windows-instance.html). Irrespective however if BYOH or a `MachineSet` is made use of, the upgrade of the OS is handled **outside** OpenShift and the WMCO, so this is all on me to do!
+This Windows node is one that I have rolled out as a Bring-Your-Own-Instance (BYOH) node as [explained here](https://docs.openshift.com/container-platform/4.10/windows_containers/byoh-windows-instance.html). Irrespective however if BYOH or a `MachineSet` is opted for, the upgrade of the OS is handled **outside** OpenShift and the WMCO, so this is all on me to do!
 
-Sparing those [details](https://learn.microsoft.com/en-us/windows-server/get-started/perform-in-place-upgrade) from this post, once upgraded I can log back into the host to first confirm my new OS version and re-attempt the pulling of the 2022 image. 
+Sparing those [details](https://learn.microsoft.com/en-us/windows-server/get-started/perform-in-place-upgrade) from this post, once upgraded I can log back into the host to first confirm my new OS version and reattempt the pulling of the 2022 image. 
 
 {{% notice warning %}}
 Windows Container images can be VERY large. In some cases, a small base image can be 8GB in size, and therefore it is suggested to pre-pull any base images you need. 
@@ -119,7 +119,7 @@ PS C:\Users\Administrator> systeminfo | Select-String "OS Name"
 OS Name:                   Microsoft Windows Server 2022 Datacenter
 ```
 
-Now, I can grab a ready made Deployment and Service for my Windows web server although with one minor change. I will update the image tag to reflect the 2022 Core image. 
+Now, I can grab a ready made Deployment and Service for my Windows web server although with one minor change. I will update the image tag to reflect the _2022 Core image_. 
 
 ```yaml
 $ wget -O - https://gist.githubusercontent.com/suhanime/683ee7b5a2f55c11e3a26a4223170582/raw/d893db98944bf615fccfe73e6e4fb19549a362a5/WinWebServer.yaml | sed -e 's/ltsc2019/ltsc2022/g' | oc apply -f -
@@ -136,7 +136,7 @@ Let's confirm we're looking all good from a Pod perspective.
 NAME                             READY   STATUS    RESTARTS   AGE
 win-webserver-5db7f85d96-9vm96   1/1     Running   0          10s
 ```
-And with that we can expose the Service and retrieve the Route to access our welcome page. 
+And with that we can expose the Service and retrieve the Route to access our landing page. 
 
 ```yaml
 $ oc expose svc/win-webserver
@@ -154,4 +154,4 @@ And there we have it, a Windows Sever 2022 container image serving a web page on
 
 Hopefully this post has demonstrated the ease in which we can bring Windows workloads to OpenShift with very low friction in order to capitalize on the benefits of containerization. And we don't have to stop there, we can think about bringing other OpenShift hosting features like [OpenShift Virtualization](https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization) to cater for further use cases.
 
-Microsoft's "love" for Linux has existed for almost a decade now (even Steve's [come around](https://www.zdnet.com/article/ballmer-i-may-have-called-linux-a-cancer-but-now-i-love-it/)) which has really paved the way for developments like these covered in this post. Ultimately, they've really moved the needle for the hybrid cloud strategies of Red Hat and Microsoft's customers alike and highlight just how much organisations can benefits from large consolidation efforts across their infrastructure.
+Microsoft's "love" for Linux has existed for almost a decade now (even Steve's [come around](https://www.zdnet.com/article/ballmer-i-may-have-called-linux-a-cancer-but-now-i-love-it/)) which has really paved the way for developments like these covered in this post. Ultimately, they've really moved the needle for the hybrid cloud strategies of Red Hat and Microsoft's customers alike and highlight just how much organisations can benefit from large-scale consolidation efforts across their infrastructure.
